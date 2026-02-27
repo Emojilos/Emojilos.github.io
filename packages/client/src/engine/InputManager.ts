@@ -13,6 +13,9 @@ export class InputManager {
     space: false,
   };
 
+  /** Whether the primary mouse button (LMB) is currently held */
+  mouseDown = false;
+
   /** Accumulated mouse movement since last consumeMouseDelta() call */
   private _mouseDeltaX = 0;
   private _mouseDeltaY = 0;
@@ -21,6 +24,8 @@ export class InputManager {
     window.addEventListener('keydown', this.onKeyDown);
     window.addEventListener('keyup', this.onKeyUp);
     document.addEventListener('mousemove', this.onMouseMove);
+    document.addEventListener('mousedown', this.onMouseDown);
+    document.addEventListener('mouseup', this.onMouseUp);
   }
 
   private onKeyDown = (e: KeyboardEvent): void => {
@@ -55,9 +60,19 @@ export class InputManager {
     return { dx, dy };
   }
 
+  private onMouseDown = (e: MouseEvent): void => {
+    if (e.button === 0) this.mouseDown = true;
+  };
+
+  private onMouseUp = (e: MouseEvent): void => {
+    if (e.button === 0) this.mouseDown = false;
+  };
+
   dispose(): void {
     window.removeEventListener('keydown', this.onKeyDown);
     window.removeEventListener('keyup', this.onKeyUp);
     document.removeEventListener('mousemove', this.onMouseMove);
+    document.removeEventListener('mousedown', this.onMouseDown);
+    document.removeEventListener('mouseup', this.onMouseUp);
   }
 }

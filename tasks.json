@@ -193,7 +193,7 @@
         "Шаг 4: Быстрые клики ограничены скорострельностью"
       ],
       "dependencies": ["TASK-006"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-009",

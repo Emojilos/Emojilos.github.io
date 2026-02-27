@@ -71,6 +71,14 @@ export class SceneManager {
     this.renderer.render(this.scene, this.camera);
   }
 
+  /** Render a second scene on top (weapon overlay). Clears only depth buffer. */
+  renderOverlay(scene: THREE.Scene, camera: THREE.Camera): void {
+    this.renderer.autoClear = false;
+    this.renderer.clearDepth();
+    this.renderer.render(scene, camera);
+    this.renderer.autoClear = true;
+  }
+
   dispose(): void {
     window.removeEventListener('resize', this.onResize);
     this.renderer.dispose();
