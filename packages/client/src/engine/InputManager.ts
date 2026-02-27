@@ -1,0 +1,63 @@
+import type { KeyState } from '@browserstrike/shared';
+
+/**
+ * Tracks keyboard state (WASD + Space) and accumulated mouse delta.
+ * Mouse delta is reset each frame after consumption.
+ */
+export class InputManager {
+  readonly keys: KeyState = {
+    w: false,
+    a: false,
+    s: false,
+    d: false,
+    space: false,
+  };
+
+  /** Accumulated mouse movement since last consumeMouseDelta() call */
+  private _mouseDeltaX = 0;
+  private _mouseDeltaY = 0;
+
+  constructor() {
+    window.addEventListener('keydown', this.onKeyDown);
+    window.addEventListener('keyup', this.onKeyUp);
+    document.addEventListener('mousemove', this.onMouseMove);
+  }
+
+  private onKeyDown = (e: KeyboardEvent): void => {
+    this.setKey(e.code, true);
+  };
+
+  private onKeyUp = (e: KeyboardEvent): void => {
+    this.setKey(e.code, false);
+  };
+
+  private setKey(code: string, pressed: boolean): void {
+    switch (code) {
+      case 'KeyW': this.keys.w = pressed; break;
+      case 'KeyA': this.keys.a = pressed; break;
+      case 'KeyS': this.keys.s = pressed; break;
+      case 'KeyD': this.keys.d = pressed; break;
+      case 'Space': this.keys.space = pressed; break;
+    }
+  }
+
+  private onMouseMove = (e: MouseEvent): void => {
+    this._mouseDeltaX += e.movementX;
+    this._mouseDeltaY += e.movementY;
+  };
+
+  /** Returns accumulated mouse delta and resets it. */
+  consumeMouseDelta(): { dx: number; dy: number } {
+    const dx = this._mouseDeltaX;
+    const dy = this._mouseDeltaY;
+    this._mouseDeltaX = 0;
+    this._mouseDeltaY = 0;
+    return { dx, dy };
+  }
+
+  dispose(): void {
+    window.removeEventListener('keydown', this.onKeyDown);
+    window.removeEventListener('keyup', this.onKeyUp);
+    document.removeEventListener('mousemove', this.onMouseMove);
+  }
+}

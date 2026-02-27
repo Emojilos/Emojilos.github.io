@@ -1,24 +1,25 @@
 # BrowserStrike — Notes for next iteration
 
 ## Completed this session
-- TASK-005 (3D scene rendering + prototype Warehouse map)
-  - Created SceneManager.ts: WebGLRenderer, PerspectiveCamera, Scene with fog, shadow maps
-  - Lighting: AmbientLight (0.6) + DirectionalLight with shadows (2048px) + fill light
-  - Created MapBuilder.ts: buildWarehouseMap() with floor (40x40), 4 outer walls, 2 interior walls with gap, 8 crates of varied sizes
-  - Crates placed at spawn areas (NW/SE corners) and mid-map for cover
-  - Refactored main.ts to use SceneManager + MapBuilder
+- TASK-006 (FPS Controller: InputManager, PointerLock, camera, WASD movement)
+  - Created InputManager.ts: tracks WASD+Space keys and accumulated mouse delta
+  - Created PointerLock.ts: click-to-lock, Esc to unlock, locked state tracking
+  - Created FPSController.ts: yaw/pitch from mouse (±89° pitch clamp), WASD movement relative to camera facing, diagonal normalization, speed from PLAYER_SPEED (250 u/s)
+  - Updated main.ts: requestAnimationFrame loop with delta time, FPSController integration, dt capped at 100ms
 
 ## Current state
-- TASK-001 through TASK-005 all done
+- TASK-001 through TASK-006 all done
 - Server boots on port 2567, responds to HTTP, logs "GameRoom registered"
-- Client builds and type-checks; 3D scene renders with warehouse map
+- Client builds and type-checks; 3D warehouse scene with FPS controls (click to lock, WASD to move, mouse to look)
 
 ## Next priority tasks (all deps met)
-- TASK-012: Colyseus State Schema (depends on TASK-004 ✓, TASK-002 ✓) — critical
-- TASK-006: FPS controller (depends on TASK-005 ✓, TASK-002 ✓) — critical, unblocks movement/physics chain
+- TASK-012: Colyseus State Schema (deps: TASK-004 ✓, TASK-002 ✓) — critical
+- TASK-007: Physics/movement (deps: TASK-006 ✓) — critical, adds gravity/jump/collisions
+- TASK-008: First-person weapon model (deps: TASK-006 ✓) — critical, Deagle model + recoil
 
 ## Notes
-- .claude/settings.local.json was updated to allow npm, npx, kill commands
-- Colyseus 0.15.57 is installed; WebSocketTransport uses http.createServer for HTTP responses
-- colyseus.js (client SDK) ^0.15.0 added to client dependencies
+- PLAYER_SPEED = 250 units/sec, EYE_HEIGHT = 1.65m (from shared/constants/game.ts)
+- Mouse sensitivity = 0.002, Euler order YXZ for proper FPS camera
+- Movement currently has no collision or gravity — those come in TASK-007
+- Colyseus 0.15.57 on server, colyseus.js ^0.15.0 on client
 - Scene uses PCFSoftShadowMap, fog (30-60 range), directional light shadow camera covers 25 units
