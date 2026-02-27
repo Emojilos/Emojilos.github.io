@@ -1,25 +1,30 @@
 # BrowserStrike — Notes for next iteration
 
 ## Completed this session
-- TASK-006 (FPS Controller: InputManager, PointerLock, camera, WASD movement)
-  - Created InputManager.ts: tracks WASD+Space keys and accumulated mouse delta
-  - Created PointerLock.ts: click-to-lock, Esc to unlock, locked state tracking
-  - Created FPSController.ts: yaw/pitch from mouse (±89° pitch clamp), WASD movement relative to camera facing, diagonal normalization, speed from PLAYER_SPEED (250 u/s)
-  - Updated main.ts: requestAnimationFrame loop with delta time, FPSController integration, dt capped at 100ms
+- TASK-007 (Physics: gravity, jump, AABB collisions)
+  - Created packages/shared/src/physics/movement.ts: pure applyMovement() function with gravity (GRAVITY=-20), jump (JUMP_VELOCITY=8), horizontal movement with diagonal normalization. Used by both client and (future) server.
+  - Created packages/shared/src/physics/aabb.ts: AABB collision primitives — createAABB, aabbOverlap, resolveAABB (minimum penetration axis resolution)
+  - Created packages/client/src/engine/CollisionWorld.ts: holds static AABB volumes, resolves player collisions iteratively (up to 4 passes for corners). Handles landing on top (grounded=true), ceiling hits.
+  - Updated MapBuilder.ts: now returns CollisionWorld with all walls/crates registered as AABB volumes
+  - Updated FPSController.ts: uses shared applyMovement() + CollisionWorld.resolve() instead of direct position math. Tracks PhysicsState (velocityY, isGrounded).
+  - Updated main.ts: wires collisionWorld from MapBuilder into FPSController
+  - Exported applyMovement, PhysicsState, MovementInput, AABB, createAABB, aabbOverlap, resolveAABB from shared/index.ts
 
 ## Current state
-- TASK-001 through TASK-006 all done
+- TASK-001 through TASK-007 all done
 - Server boots on port 2567, responds to HTTP, logs "GameRoom registered"
-- Client builds and type-checks; 3D warehouse scene with FPS controls (click to lock, WASD to move, mouse to look)
+- Client builds and type-checks; 3D warehouse scene with full FPS controls including gravity, jump (Space), and AABB collisions with walls/crates
+- Player stands on floor, can jump, cannot walk through walls or crates, no double-jump
 
 ## Next priority tasks (all deps met)
 - TASK-012: Colyseus State Schema (deps: TASK-004 ✓, TASK-002 ✓) — critical
-- TASK-007: Physics/movement (deps: TASK-006 ✓) — critical, adds gravity/jump/collisions
 - TASK-008: First-person weapon model (deps: TASK-006 ✓) — critical, Deagle model + recoil
 
 ## Notes
-- PLAYER_SPEED = 250 units/sec, EYE_HEIGHT = 1.65m (from shared/constants/game.ts)
+- PLAYER_SPEED = 250 u/s, GRAVITY = -20, JUMP_VELOCITY = 8, EYE_HEIGHT = 1.65m
+- PLAYER_RADIUS = 0.3, PLAYER_HEIGHT = 1.8 (collision capsule approximated as AABB)
+- applyMovement() is a pure function — returns new state, doesn't mutate input. Ready for server use.
+- CollisionWorld.resolve() runs up to 4 iterations to handle corner sliding
 - Mouse sensitivity = 0.002, Euler order YXZ for proper FPS camera
-- Movement currently has no collision or gravity — those come in TASK-007
 - Colyseus 0.15.57 on server, colyseus.js ^0.15.0 on client
 - Scene uses PCFSoftShadowMap, fog (30-60 range), directional light shadow camera covers 25 units

@@ -1,7 +1,8 @@
 import * as THREE from 'three';
-import { PLAYER_SPEED, EYE_HEIGHT } from '@browserstrike/shared';
+import { EYE_HEIGHT, applyMovement, type PhysicsState } from '@browserstrike/shared';
 import { InputManager } from './InputManager';
 import { PointerLock } from './PointerLock';
+import type { CollisionWorld } from './CollisionWorld';
 
 const DEG2RAD = Math.PI / 180;
 const MAX_PITCH = 89 * DEG2RAD;
@@ -10,23 +11,27 @@ const MOUSE_SENSITIVITY = 0.002;
 /**
  * First-person shooter controller:
  * - Mouse look (yaw / pitch) via Pointer Lock
- * - WASD movement relative to camera facing direction
- * - Diagonal movement normalized to prevent speed boost
+ * - WASD movement with shared physics (gravity, jump)
+ * - AABB collision resolution via CollisionWorld
  */
 export class FPSController {
   readonly input: InputManager;
   readonly pointerLock: PointerLock;
 
-  /** Yaw (horizontal rotation) in radians, 0 = looking along -Z */
   yaw = 0;
-  /** Pitch (vertical rotation) in radians, clamped to ±89° */
   pitch = 0;
 
   /** World position of the player's feet */
   readonly position = new THREE.Vector3(0, 0, 5);
 
+  private physics: PhysicsState = {
+    x: 0, y: 0, z: 5,
+    velocityY: 0,
+    isGrounded: true,
+  };
+
   private readonly euler = new THREE.Euler(0, 0, 0, 'YXZ');
-  private readonly moveDir = new THREE.Vector3();
+  private collisionWorld: CollisionWorld | null = null;
 
   constructor(
     private readonly camera: THREE.PerspectiveCamera,
@@ -34,14 +39,13 @@ export class FPSController {
   ) {
     this.input = new InputManager();
     this.pointerLock = new PointerLock(canvas);
-
-    // Set initial camera position
     this.camera.position.set(this.position.x, this.position.y + EYE_HEIGHT, this.position.z);
   }
 
-  /**
-   * Call once per frame with the frame delta time (seconds).
-   */
+  setCollisionWorld(world: CollisionWorld): void {
+    this.collisionWorld = world;
+  }
+
   update(dt: number): void {
     this.updateRotation();
     this.updateMovement(dt);
@@ -52,11 +56,8 @@ export class FPSController {
     if (!this.pointerLock.locked) return;
 
     const { dx, dy } = this.input.consumeMouseDelta();
-
     this.yaw -= dx * MOUSE_SENSITIVITY;
     this.pitch -= dy * MOUSE_SENSITIVITY;
-
-    // Clamp pitch to ±89°
     this.pitch = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, this.pitch));
   }
 
@@ -65,28 +66,32 @@ export class FPSController {
 
     const { keys } = this.input;
 
-    // Build movement vector in local space (forward = -Z, right = +X)
-    let mx = 0;
-    let mz = 0;
-    if (keys.w) mz -= 1;
-    if (keys.s) mz += 1;
-    if (keys.a) mx -= 1;
-    if (keys.d) mx += 1;
+    let forward = 0;
+    let right = 0;
+    if (keys.w) forward += 1;
+    if (keys.s) forward -= 1;
+    if (keys.d) right += 1;
+    if (keys.a) right -= 1;
 
-    if (mx === 0 && mz === 0) return;
+    // Sync physics state from position
+    this.physics.x = this.position.x;
+    this.physics.y = this.position.y;
+    this.physics.z = this.position.z;
 
-    // Normalize diagonal movement
-    this.moveDir.set(mx, 0, mz).normalize();
+    // Apply shared movement physics (gravity, jump, horizontal move)
+    this.physics = applyMovement(this.physics, {
+      forward,
+      right,
+      jump: keys.space,
+      yaw: this.yaw,
+    }, dt);
 
-    // Rotate movement direction by yaw (horizontal only)
-    const sinYaw = Math.sin(this.yaw);
-    const cosYaw = Math.cos(this.yaw);
-    const worldX = this.moveDir.x * cosYaw + this.moveDir.z * sinYaw;
-    const worldZ = -this.moveDir.x * sinYaw + this.moveDir.z * cosYaw;
+    // Resolve collisions with map geometry
+    if (this.collisionWorld) {
+      this.physics = this.collisionWorld.resolve(this.physics);
+    }
 
-    const speed = PLAYER_SPEED * dt;
-    this.position.x += worldX * speed;
-    this.position.z += worldZ * speed;
+    this.position.set(this.physics.x, this.physics.y, this.physics.z);
   }
 
   private syncCamera(): void {
@@ -95,7 +100,6 @@ export class FPSController {
       this.position.y + EYE_HEIGHT,
       this.position.z,
     );
-
     this.euler.set(this.pitch, this.yaw, 0);
     this.camera.quaternion.setFromEuler(this.euler);
   }

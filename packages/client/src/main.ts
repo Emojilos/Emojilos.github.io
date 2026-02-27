@@ -5,9 +5,10 @@ import { FPSController } from './engine/FPSController';
 const canvas = document.getElementById('game') as HTMLCanvasElement;
 
 const sceneManager = new SceneManager(canvas);
-buildWarehouseMap(sceneManager.scene);
+const collisionWorld = buildWarehouseMap(sceneManager.scene);
 
 const fpsController = new FPSController(sceneManager.camera, canvas);
+fpsController.setCollisionWorld(collisionWorld);
 
 let lastTime = performance.now();
 

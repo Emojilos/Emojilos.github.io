@@ -171,7 +171,7 @@
         "Шаг 5: Двойной прыжок невозможен"
       ],
       "dependencies": ["TASK-006"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-008",

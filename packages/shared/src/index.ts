@@ -27,3 +27,9 @@ export type {
 } from './types/network.js';
 
 export type { RoomState } from './types/room.js';
+
+// Physics
+export { applyMovement } from './physics/movement.js';
+export type { MovementInput, PhysicsState } from './physics/movement.js';
+export { createAABB, aabbOverlap, resolveAABB } from './physics/aabb.js';
+export type { AABB } from './physics/aabb.js';
