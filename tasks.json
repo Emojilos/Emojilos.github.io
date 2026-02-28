@@ -305,7 +305,7 @@
         "Шаг 5: Отключение игрока удаляет его из state.players"
       ],
       "dependencies": ["TASK-012"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-014",

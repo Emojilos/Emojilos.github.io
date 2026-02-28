@@ -1,29 +1,41 @@
 # BrowserStrike — Notes for next iteration
 
 ## Completed this session
-- TASK-012 (Colyseus State Schema)
-  - Created packages/server/src/schemas/ with 4 schema files + barrel export:
-    - GameState.ts: roomCode, status (GameStatus), settings (SettingsSchema), adminId, scoreTeamA/B, currentRound, roundTimer, players (MapSchema<PlayerSchema>), killFeed (ArraySchema<KillEventSchema>)
-    - PlayerSchema.ts: sessionId, nickname, team, isAlive, hp, position (x/y/z float32), rotation (yaw/pitch float32), currentWeapon, ammo, isReloading, kills, deaths
-    - SettingsSchema.ts: mode (GameMode), mapId, roundsToWin, roundTimeLimit
-    - KillEventSchema.ts: killerNickname, victimNickname, weapon, isHeadshot, timestamp
-  - All schemas use @type() decorators for Colyseus serialization
-  - Added experimentalDecorators: true to server tsconfig.json
-  - Updated GameRoom to use GameState: setState(), generates room code, creates PlayerSchema on join, assigns admin, handles leave/admin reassignment
+- TASK-013 (Room System: create/join by code, nickname validation)
+  - Enhanced GameRoom.ts:
+    - Added nickname validation: 3-16 chars, latin letters + digits + underscores only
+    - Throws ServerError(400) for invalid nicknames
+    - Room code exposed as metadata via setMetadata() for client room discovery
+    - Added 'joinTeam' message handler (team A/B/unassigned)
+    - Better logging with player count
+  - Created packages/client/src/network/NetworkManager.ts:
+    - createRoom(nickname) — creates room, returns room code
+    - joinByCode(roomCode, nickname) — queries available rooms by metadata, joins matching
+    - listen(callbacks) — registers state change, player add/remove, error, leave callbacks
+    - send(type, data) / onMessage(type, callback) for message passing
+    - leave() for disconnection
+    - sessionId, connected, currentRoom getters
+    - Uses VITE_SERVER_URL env var (defaults to ws://localhost:2567)
+  - Created packages/client/src/vite-env.d.ts for Vite type support
+  - Fixed server dev script: added --tsconfig flag to tsx for legacy decorator support
 
 ## Current state
-- TASK-001 through TASK-008 + TASK-012 all done
-- Server boots on port 2567 with full state schema, room code generation, player management
-- Client builds and type-checks; 3D warehouse scene with full FPS controls, gravity, jump, AABB collisions
-- Desert Eagle model visible in lower-right, LMB fires with recoil animation
+- TASK-001 through TASK-008 + TASK-012 + TASK-013 all done
+- Server boots on port 2567, generates room codes, validates nicknames, manages players
+- Client has NetworkManager ready for creating/joining rooms
+- Client builds and type-checks; 3D warehouse scene with FPS controls, physics, weapon model
 
 ## Next priority tasks (all deps met)
-- TASK-013: Room system — create/join by code, nickname validation, max 4 players (deps: TASK-012 ✓) — critical, blocks lobby/UI chain
-- TASK-009: Shooting system / raycasting (deps: TASK-008 ✓) — high, muzzle flash + bullet tracer + impact marks
+- TASK-009: Shooting system / raycasting (deps: TASK-008 done) — high priority
+- TASK-014: Main Menu UI (deps: TASK-013 done, TASK-003 done) — critical, blocks lobby chain
+- TASK-042: Room auto-destroy (deps: TASK-013 done) — medium priority
 
 ## Notes
 - @colyseus/schema v2.0.37 uses legacy decorators (experimentalDecorators: true)
+- tsx needs --tsconfig flag to respect experimentalDecorators from tsconfig.json
 - Room code uses ABCDEFGHJKLMNPQRSTUVWXYZ23456789 charset (no 0/O/1/I confusion)
+- Room code is exposed as metadata for client discovery via getAvailableRooms()
+- Nickname regex: /^[A-Za-z0-9_]+$/, length 3-16
 - PlayerSchema uses flat float32 for position/rotation (not nested Schema) for bandwidth efficiency
 - GameState.players is MapSchema<PlayerSchema> keyed by sessionId
 - GameState.killFeed is ArraySchema<KillEventSchema>
