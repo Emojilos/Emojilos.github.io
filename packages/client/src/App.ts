@@ -11,8 +11,9 @@ import { LobbyScreen } from './ui/LobbyScreen';
 import { GameHUD } from './ui/GameHUD';
 import { WeaponSelectScreen } from './ui/WeaponSelectScreen';
 import { DamageEffects } from './ui/DamageEffects';
+import { KillFeed } from './ui/KillFeed';
 import { PLAYER_HP, ROUND_TIME_LIMIT, DEFAULT_WEAPON, WEAPON_IDS } from '@browserstrike/shared';
-import type { InputMessage, ShootMessage, Team, GameMode, MapId, RoundsToWin, WeaponId, RoundEndEvent, MatchEndEvent } from '@browserstrike/shared';
+import type { InputMessage, ShootMessage, Team, GameMode, MapId, RoundsToWin, WeaponId, KillEvent, RoundEndEvent, MatchEndEvent } from '@browserstrike/shared';
 
 export enum AppState {
   MENU = 'menu',
@@ -45,6 +46,7 @@ export class App {
   private gameHUD: GameHUD | null = null;
   private weaponSelectScreen: WeaponSelectScreen | null = null;
   private damageEffects: DamageEffects | null = null;
+  private killFeed: KillFeed | null = null;
 
   // Network — always available
   readonly network: NetworkManager;
@@ -338,6 +340,9 @@ export class App {
 
       // Damage effects — vignette + hitmarker
       this.damageEffects = new DamageEffects(playingScreen);
+
+      // Kill feed — top-right kill notifications
+      this.killFeed = new KillFeed(playingScreen);
     }
 
     // Remote players — spawn/despawn capsules from Colyseus state
@@ -356,6 +361,10 @@ export class App {
     if (this.animationFrameId) {
       cancelAnimationFrame(this.animationFrameId);
       this.animationFrameId = 0;
+    }
+    if (this.killFeed) {
+      this.killFeed.dispose();
+      this.killFeed = null;
     }
     if (this.damageEffects) {
       this.damageEffects.dispose();
@@ -446,6 +455,11 @@ export class App {
     // Hit confirmation — show hitmarker when we hit an enemy
     this.network.onMessage('hit', (data: { damage: number; isHeadshot: boolean }) => {
       this.damageEffects?.showHitmarker(data.isHeadshot);
+    });
+
+    // Kill event — add to kill feed
+    this.network.onMessage('kill', (data: KillEvent) => {
+      this.killFeed?.addKill(data);
     });
 
     // Damage received — show red vignette with direction indicator
@@ -707,6 +721,7 @@ export class App {
     weapon.update(dt);
     shooting.update(dt);
     this.damageEffects?.update(dt);
+    this.killFeed?.update(dt);
 
     // Apply smooth prediction correction offset
     if (this.prediction) {

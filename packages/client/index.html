@@ -401,6 +401,32 @@
       bottom: 2px; right: 2px;
       transform: rotate(-45deg);
     }
+
+    /* Kill Feed — top-right corner */
+    .kill-feed {
+      position: absolute; top: 16px; right: 16px;
+      display: flex; flex-direction: column; gap: 4px;
+      align-items: flex-end;
+      pointer-events: none; z-index: 10;
+      font-family: 'Segoe UI', Arial, sans-serif;
+    }
+    .kill-feed-entry {
+      display: flex; align-items: center; gap: 6px;
+      padding: 4px 10px;
+      background: rgba(0, 0, 0, 0.55);
+      border-radius: 4px;
+      font-size: 0.8rem;
+      white-space: nowrap;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+    }
+    .kf-killer { color: #fff; font-weight: 600; }
+    .kf-weapon { color: #888; font-size: 0.7rem; }
+    .kf-victim { color: #ccc; }
+    .kf-headshot {
+      color: #ff3c3c; font-size: 0.65rem; font-weight: 700;
+      background: rgba(255, 60, 60, 0.2);
+      padding: 1px 4px; border-radius: 2px;
+    }
   </style>
 </head>
 <body>

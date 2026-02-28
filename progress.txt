@@ -384,12 +384,36 @@
   - Server events already existed (TASK-024): 'hit' sent to shooter, 'damaged' sent to victim
   - TypeScript compiles cleanly for client, server, and shared packages
 
+## Completed this session (continued 12)
+- TASK-031 (Kill Feed UI: kill notifications in top-right corner)
+  - Created packages/client/src/ui/KillFeed.ts:
+    - Container positioned top-right with flex column, aligned to flex-end
+    - addKill(KillEvent): creates entry with "killerName [weapon] victimName" format
+    - Headshot indicator: red "HS" badge with colored background
+    - Max 5 entries visible at once (oldest removed on overflow)
+    - Timer-based fade: entries stay 5s, then CSS transition fade-out over 0.5s
+    - update(dt) called every frame to age entries and remove faded ones
+    - HTML-escaped nicknames (XSS prevention)
+    - dispose() removes container from DOM
+  - Updated packages/client/src/App.ts:
+    - Import KillFeed and KillEvent type
+    - KillFeed created in startGameLoop() alongside other UI components
+    - Network listener for 'kill' event: calls killFeed.addKill(data)
+    - killFeed.update(dt) called in animate loop
+    - Disposed in stopGameLoop()
+  - Updated packages/client/index.html:
+    - CSS for .kill-feed: absolute top-right, pointer-events: none, z-index: 10
+    - .kill-feed-entry: dark semi-transparent background, rounded, compact text
+    - .kf-killer (white bold), .kf-weapon (grey, smaller), .kf-victim (light grey)
+    - .kf-headshot: red badge with rgba background
+  - TypeScript compiles cleanly for client and server
+
 ## Next priority tasks (all deps met)
-- TASK-031: Kill Feed UI (deps: TASK-018 done, TASK-024 done) — medium
 - TASK-032: Scoreboard UI (deps: TASK-018 done) — medium
-- TASK-033: Damage indicator/hitmarker (deps: TASK-018 done, TASK-024 done) — medium
 - TASK-035: Match end screen (deps: TASK-026 done) — medium
 - TASK-036: MapLoader (deps: TASK-026 done) — medium
+- TASK-025: Lag compensation (deps: TASK-024 done) — medium
+- TASK-034: Spectator mode (deps: TASK-026 done, TASK-022 done) — medium
 
 ## Notes
 - Server input handling: per-message processing (not buffered), applies physics + collisions immediately
@@ -466,3 +490,5 @@
 - Weapon switch: 1/2/3 keys (consumeWeaponSlot) + scroll wheel (consumeWeaponScroll) in InputManager
 - switchToWeapon() in App: syncs WeaponModel + ShootingSystem + sends selectWeapon to server
 - Scroll wheel cycles through WEAPON_IDS cyclically (wraps around)
+- KillFeed: max 5 entries, 5s display + 0.5s CSS fade-out, entries auto-removed after fade
+- Kill events arrive via broadcast 'kill' message (KillEvent type from shared); also stored in state.killFeed ArraySchema

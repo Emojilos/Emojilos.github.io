@@ -501,7 +501,7 @@
         "Шаг 4: 6+ убийств — только последние 5 видны"
       ],
       "dependencies": ["TASK-018", "TASK-024"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-032",
