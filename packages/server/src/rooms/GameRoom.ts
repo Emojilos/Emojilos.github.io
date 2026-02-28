@@ -8,19 +8,26 @@ import {
   MIN_NICKNAME_LENGTH,
   MAX_NICKNAME_LENGTH,
   TICK_RATE,
+  EYE_HEIGHT,
   applyMovement,
 } from '@browserstrike/shared';
 import type {
   InputMessage,
   JoinTeamMessage,
+  HitEvent,
+  KillEvent,
   GameMode,
   MapId,
   RoundsToWin,
+  Vec3,
 } from '@browserstrike/shared';
 import { GameState } from '../schemas/GameState.js';
 import { PlayerSchema } from '../schemas/PlayerSchema.js';
+import { KillEventSchema } from '../schemas/KillEventSchema.js';
 import { CollisionWorld } from '../physics/CollisionWorld.js';
 import { buildMapCollisions } from '../physics/mapCollisions.js';
+import { performHitDetection } from '../physics/hitDetection.js';
+import type { HitTarget } from '../physics/hitDetection.js';
 
 const NICKNAME_REGEX = /^[A-Za-z0-9_]+$/;
 
@@ -173,7 +180,104 @@ export class GameRoom extends Room<GameState> {
       // Decrement ammo
       player.ammo--;
 
-      // Hit detection will be implemented in TASK-024
+      // --- Hit detection (TASK-024) ---
+
+      // Use server-authoritative origin (player position + eye height)
+      const origin: Vec3 = { x: player.x, y: player.y + EYE_HEIGHT, z: player.z };
+
+      // Validate and use client direction
+      const msg = message as Record<string, unknown>;
+      const dir = msg.direction as Record<string, unknown> | undefined;
+      if (!dir || !isFiniteNum(dir.x) || !isFiniteNum(dir.y) || !isFiniteNum(dir.z)) return;
+
+      // Normalize direction
+      const len = Math.sqrt(dir.x * dir.x + dir.y * dir.y + dir.z * dir.z);
+      if (len < 0.001) return;
+      const direction: Vec3 = { x: dir.x / len, y: dir.y / len, z: dir.z / len };
+
+      // Build targets list from alive enemy players
+      const targets: HitTarget[] = [];
+      const targetTeams = new Map<string, string>();
+      this.state.players.forEach((p, id) => {
+        if (!p.isAlive) return;
+        targets.push({ sessionId: id, x: p.x, y: p.y, z: p.z });
+        targetTeams.set(id, p.team);
+      });
+
+      const hitResult = performHitDetection(
+        origin,
+        direction,
+        config.range,
+        client.sessionId,
+        player.team,
+        targets,
+        targetTeams,
+      );
+
+      if (!hitResult) return;
+
+      const victim = this.state.players.get(hitResult.targetId);
+      if (!victim || !victim.isAlive) return;
+
+      // Calculate damage
+      const damage = hitResult.isHeadshot ? config.damage.head : config.damage.body;
+
+      // Apply damage
+      victim.hp -= damage;
+
+      // Send hit confirmation to the shooter
+      const hitEvent: HitEvent = {
+        targetId: hitResult.targetId,
+        damage,
+        isHeadshot: hitResult.isHeadshot,
+        direction,
+      };
+      client.send('hit', hitEvent);
+
+      // Send damage notification to the victim
+      const victimClient = this.clients.find(c => c.sessionId === hitResult.targetId);
+      if (victimClient) {
+        victimClient.send('damaged', {
+          damage,
+          isHeadshot: hitResult.isHeadshot,
+          attackerId: client.sessionId,
+          direction: { x: -direction.x, y: -direction.y, z: -direction.z },
+        });
+      }
+
+      // Check for kill
+      if (victim.hp <= 0) {
+        victim.hp = 0;
+        victim.isAlive = false;
+
+        // Update stats
+        player.kills++;
+        victim.deaths++;
+
+        // Add to kill feed
+        const killEvent = new KillEventSchema();
+        killEvent.killerNickname = player.nickname;
+        killEvent.victimNickname = victim.nickname;
+        killEvent.weapon = player.currentWeapon;
+        killEvent.isHeadshot = hitResult.isHeadshot;
+        killEvent.timestamp = Date.now();
+        this.state.killFeed.push(killEvent);
+
+        // Broadcast kill event
+        const killMsg: KillEvent = {
+          killerId: client.sessionId,
+          killerName: player.nickname,
+          victimId: hitResult.targetId,
+          victimName: victim.nickname,
+          weaponId: player.currentWeapon,
+          isHeadshot: hitResult.isHeadshot,
+        };
+        this.broadcast('kill', killMsg);
+
+        console.log(
+          `Kill: ${player.nickname} -> ${victim.nickname} [${player.currentWeapon}]${hitResult.isHeadshot ? ' HEADSHOT' : ''}`,
+        );
+      }
     });
 
     this.onMessage('reload', (client) => {

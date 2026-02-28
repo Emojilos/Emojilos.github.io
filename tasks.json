@@ -349,7 +349,7 @@
         "Шаг 4: Проверить killFeed: содержит запись убийства с оружием и headshot флагом"
       ],
       "dependencies": ["TASK-023", "TASK-015", "TASK-020"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-025",

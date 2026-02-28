@@ -190,15 +190,37 @@
   - Updated packages/client/index.html:
     - CSS for .hud-reload: orange text, pulsing animation (0.6s ease-in-out)
 
+## Completed this session (continued 4)
+- TASK-024 (Server hit detection: raycast, damage, kills)
+  - Created packages/server/src/physics/hitDetection.ts:
+    - rayAABB(): slab-method ray-AABB intersection, returns distance or null
+    - raySphere(): analytic ray-sphere intersection for headshot detection
+    - performHitDetection(): iterates all alive enemy players, tests head sphere (HEAD_RADIUS=0.15 at HEAD_OFFSET_Y=1.6) then body AABB (PLAYER_RADIUS × PLAYER_HEIGHT), returns closest hit with isHeadshot flag
+    - Skips self and teammates (no friendly fire)
+    - HitTarget interface: {sessionId, x, y, z}
+    - HitResult interface: {targetId, isHeadshot, distance}
+  - Updated packages/server/src/rooms/GameRoom.ts shoot handler:
+    - Server-authoritative origin: player position + EYE_HEIGHT (ignores client origin)
+    - Validates and normalizes client direction vector (rejects NaN, zero-length)
+    - Builds targets list from alive players in room
+    - Calls performHitDetection() with weapon range as max distance
+    - On hit: damage = config.damage.head or config.damage.body (weapons.ts already has both)
+    - victim.hp -= damage, sends 'hit' event to shooter (HitEvent with targetId, damage, isHeadshot, direction)
+    - Sends 'damaged' event to victim (damage, isHeadshot, attackerId, reversed direction for damage indicator)
+    - On kill (hp <= 0): victim.isAlive=false, killer.kills++, victim.deaths++
+    - Creates KillEventSchema and pushes to state.killFeed (synced to all clients via Colyseus)
+    - Broadcasts 'kill' event (KillEvent with killerName, victimName, weaponId, isHeadshot)
+    - Console logs kills with weapon and headshot indicator
+
 ## Current state
-- TASK-001 through TASK-020 + TASK-018 + TASK-023 all done
-- Server: boots on 2567, room codes, nicknames, move/look with physics+collisions, game loop at 20Hz, updateSettings + startGame handlers, shoot handler with ammo/fire-rate validation, reload handler with timer
+- TASK-001 through TASK-020 + TASK-018 + TASK-023 + TASK-024 all done
+- Server: boots on 2567, room codes, nicknames, move/look with physics+collisions, game loop at 20Hz, updateSettings + startGame handlers, shoot handler with ammo/fire-rate validation + server-side hit detection + damage + kill tracking, reload handler with timer
 - Client: Main Menu → Lobby → Playing flow, NetworkManager, App state machine, 3D warehouse scene with FPS controls, physics, weapon model, shooting system with visual effects + reload, remote player capsules synced via Colyseus, in-game HUD with reload indicator
 
 ## Next priority tasks (all deps met)
-- TASK-024: Server hit detection (deps: TASK-023 done, TASK-015 done, TASK-020 done) — CRITICAL
 - TASK-021: Client-side prediction (deps: TASK-020 done) — high
 - TASK-022: Entity interpolation (deps: TASK-020 done) — high
+- TASK-026: Round system (deps: TASK-024 done, TASK-017 done) — CRITICAL — now unblocked!
 
 ## Notes
 - Server input handling: per-message processing (not buffered), applies physics + collisions immediately
@@ -250,3 +272,9 @@
 - HUD container appended to playing-screen div, z-index: 10
 - Crosshair is pure CSS (no canvas/WebGL), green #00ff44, 20px size
 - WeaponId in HUD is currently hardcoded 'deagle' — update after weapon switching (TASK-028)
+- Hit detection: server-authoritative origin (player.x/y/z + EYE_HEIGHT), client direction (validated+normalized)
+- Ray-AABB slab method and ray-sphere for headshot detection in packages/server/src/physics/hitDetection.ts
+- Head hitbox: sphere at (x, y+1.6, z) radius 0.15; Body hitbox: AABB from feet to PLAYER_HEIGHT
+- Weapon damage from config.damage.head / config.damage.body (already separated in weapons.ts)
+- Server sends 'hit' to shooter, 'damaged' to victim, 'kill' broadcast to all; killFeed via Colyseus state sync
+- No friendly fire: hit detection skips players on same team
