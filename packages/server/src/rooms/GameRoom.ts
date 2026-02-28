@@ -10,7 +10,13 @@ import {
   TICK_RATE,
   applyMovement,
 } from '@browserstrike/shared';
-import type { InputMessage, JoinTeamMessage } from '@browserstrike/shared';
+import type {
+  InputMessage,
+  JoinTeamMessage,
+  GameMode,
+  MapId,
+  RoundsToWin,
+} from '@browserstrike/shared';
 import { GameState } from '../schemas/GameState.js';
 import { PlayerSchema } from '../schemas/PlayerSchema.js';
 import { CollisionWorld } from '../physics/CollisionWorld.js';
@@ -99,6 +105,49 @@ export class GameRoom extends Room<GameState> {
       if (message.team !== 'A' && message.team !== 'B' && message.team !== 'unassigned') return;
       player.team = message.team;
       console.log(`${player.nickname} joined team ${message.team}`);
+    });
+
+    this.onMessage('updateSettings', (client, message: unknown) => {
+      // Only admin can update settings
+      if (client.sessionId !== this.state.adminId) return;
+      if (this.state.status !== 'lobby') return;
+      if (typeof message !== 'object' || message === null) return;
+
+      const msg = message as Record<string, unknown>;
+
+      if (typeof msg.mode === 'string' && (msg.mode === '1v1' || msg.mode === '2v2')) {
+        this.state.settings.mode = msg.mode as GameMode;
+      }
+      if (typeof msg.mapId === 'string' && ['warehouse', 'dust_alley', 'office', 'trainyard'].includes(msg.mapId)) {
+        this.state.settings.mapId = msg.mapId as MapId;
+        // Rebuild collision world for new map
+        this.collisionWorld = buildMapCollisions(this.state.settings.mapId);
+      }
+      if (typeof msg.roundsToWin === 'number' && [5, 7, 10, 13].includes(msg.roundsToWin)) {
+        this.state.settings.roundsToWin = msg.roundsToWin as RoundsToWin;
+      }
+
+      console.log(`Settings updated by ${client.sessionId}: mode=${this.state.settings.mode}, map=${this.state.settings.mapId}, rounds=${this.state.settings.roundsToWin}`);
+    });
+
+    this.onMessage('startGame', (client) => {
+      // Only admin can start
+      if (client.sessionId !== this.state.adminId) return;
+      if (this.state.status !== 'lobby') return;
+
+      // Check teams are staffed
+      const players = Array.from(this.state.players.values());
+      const teamA = players.filter(p => p.team === 'A');
+      const teamB = players.filter(p => p.team === 'B');
+      const requiredPerTeam = this.state.settings.mode === '1v1' ? 1 : 2;
+
+      if (teamA.length < requiredPerTeam || teamB.length < requiredPerTeam) {
+        console.warn(`Cannot start: teams not ready (A: ${teamA.length}, B: ${teamB.length}, need ${requiredPerTeam})`);
+        return;
+      }
+
+      this.state.status = 'weapon_select';
+      console.log(`Game starting! Status → weapon_select`);
     });
 
     this.onMessage('input', (client, message: unknown) => {

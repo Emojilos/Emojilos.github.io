@@ -5,7 +5,8 @@ import { WeaponModel } from './engine/WeaponModel';
 import { RemotePlayerManager } from './engine/RemotePlayerManager';
 import { NetworkManager } from './network/NetworkManager';
 import { MenuScreen } from './ui/MenuScreen';
-import type { InputMessage } from '@browserstrike/shared';
+import { LobbyScreen } from './ui/LobbyScreen';
+import type { InputMessage, Team, GameMode, MapId, RoundsToWin } from '@browserstrike/shared';
 
 export enum AppState {
   MENU = 'menu',
@@ -39,6 +40,8 @@ export class App {
 
   // UI screens
   private menuScreen: MenuScreen | null = null;
+  private lobbyScreen: LobbyScreen | null = null;
+  private lobbyStateInterval = 0;
 
   // DOM references
   private readonly canvas: HTMLCanvasElement;
@@ -56,8 +59,9 @@ export class App {
     // Hide canvas until playing
     this.canvas.style.display = 'none';
 
-    // Initialize menu screen UI
+    // Initialize UI screens
     this.initMenuScreen();
+    this.initLobbyScreen();
 
     console.log('BrowserStrike loaded — app in MENU state');
   }
@@ -95,6 +99,69 @@ export class App {
     });
   }
 
+  private initLobbyScreen(): void {
+    const lobbyEl = this.screens.get(AppState.LOBBY);
+    if (!lobbyEl) return;
+
+    this.lobbyScreen = new LobbyScreen(lobbyEl);
+    this.lobbyScreen.setCallbacks({
+      onJoinTeam: (team: Team) => {
+        this.network.send('joinTeam', { team });
+      },
+      onUpdateSettings: (settings: { mode?: GameMode; mapId?: MapId; roundsToWin?: RoundsToWin }) => {
+        this.network.send('updateSettings', settings);
+      },
+      onStartGame: () => {
+        this.network.send('startGame', {});
+      },
+      onLeave: async () => {
+        await this.network.leave();
+        this.setState(AppState.MENU);
+      },
+    });
+  }
+
+  /** Sync lobby UI from Colyseus state. */
+  private syncLobbyState(): void {
+    if (!this.lobbyScreen || !this.network.connected) return;
+    const room = this.network.currentRoom;
+    if (!room) return;
+
+    const state = room.state as Record<string, unknown>;
+    const playersMap = state.players as Map<string, Record<string, unknown>> | undefined;
+
+    const players: Array<{ sessionId: string; nickname: string; team: Team }> = [];
+    if (playersMap) {
+      playersMap.forEach((p, sid) => {
+        players.push({
+          sessionId: sid,
+          nickname: (p.nickname as string) || 'Unknown',
+          team: (p.team as Team) || 'unassigned',
+        });
+      });
+    }
+
+    const settings = state.settings as Record<string, unknown> | undefined;
+
+    this.lobbyScreen.update({
+      roomCode: (state.roomCode as string) || '',
+      adminId: (state.adminId as string) || '',
+      localSessionId: this.network.sessionId,
+      players,
+      settings: settings ? {
+        mode: (settings.mode as GameMode) || '2v2',
+        mapId: (settings.mapId as MapId) || 'warehouse',
+        roundsToWin: (settings.roundsToWin as RoundsToWin) || 5,
+      } : { mode: '2v2', mapId: 'warehouse', roundsToWin: 5 },
+    });
+
+    // Check if game status changed to weapon_select → transition to PLAYING
+    const gameStatus = state.status as string;
+    if (gameStatus === 'weapon_select' || gameStatus === 'playing') {
+      this.setState(AppState.PLAYING);
+    }
+  }
+
   /** Transition to a new app state. */
   setState(newState: AppState | `${AppState}`): void {
     const target = newState as AppState;
@@ -122,6 +189,12 @@ export class App {
     if (state === AppState.PLAYING) {
       this.stopGameLoop();
     }
+    if (state === AppState.LOBBY) {
+      if (this.lobbyStateInterval) {
+        clearInterval(this.lobbyStateInterval);
+        this.lobbyStateInterval = 0;
+      }
+    }
   }
 
   private enterState(state: AppState): void {
@@ -136,6 +209,12 @@ export class App {
 
     if (state === AppState.MENU) {
       this.menuScreen?.reset();
+    }
+
+    if (state === AppState.LOBBY) {
+      // Initial sync + poll for state changes
+      this.syncLobbyState();
+      this.lobbyStateInterval = window.setInterval(() => this.syncLobbyState(), 200);
     }
   }
 

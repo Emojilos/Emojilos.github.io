@@ -84,6 +84,119 @@
       border-radius: 6px; color: #ff6b6b; font-size: 0.85rem;
       text-align: center;
     }
+
+    /* Lobby panel */
+    .lobby-panel {
+      width: 520px; padding: 32px 28px;
+      background: #16213e; border-radius: 12px;
+      border: 1px solid #0f3460;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      display: flex; flex-direction: column; gap: 16px;
+    }
+    .lobby-header { text-align: center; }
+    .lobby-code-label {
+      font-size: 0.75rem; color: #666; text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .lobby-code-row {
+      display: flex; align-items: center; justify-content: center; gap: 12px;
+      margin-top: 4px;
+    }
+    .lobby-code {
+      font-size: 2rem; font-weight: 700; letter-spacing: 6px;
+      color: #ff6b00; font-family: 'Courier New', monospace;
+    }
+    .lobby-copy-btn {
+      padding: 6px 14px; border: 1px solid #1a4a7a;
+      border-radius: 4px; background: #0f3460;
+      color: #aaa; font-size: 0.8rem; cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    .lobby-copy-btn:hover { background: #163d6f; color: #fff; }
+    .lobby-teams {
+      display: flex; gap: 12px; align-items: stretch;
+    }
+    .lobby-team-col {
+      flex: 1; display: flex; flex-direction: column; gap: 8px;
+    }
+    .lobby-team-header {
+      text-align: center; font-size: 0.85rem; font-weight: 600;
+      padding: 6px 0; border-radius: 4px; text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .lobby-team-a-header { background: rgba(50,120,220,0.2); color: #5b9dff; }
+    .lobby-team-b-header { background: rgba(220,60,60,0.2); color: #ff5b5b; }
+    .lobby-team-list {
+      flex: 1; min-height: 60px; padding: 8px;
+      background: #0f3460; border-radius: 6px;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .lobby-team-empty {
+      color: #444; font-size: 0.8rem; text-align: center;
+      padding: 12px 0;
+    }
+    .lobby-team-player {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 4px 8px; border-radius: 4px;
+      background: rgba(255,255,255,0.03);
+    }
+    .lobby-player-name { color: #ccc; font-size: 0.9rem; }
+    .lobby-player-local { color: #ff6b00; font-weight: 600; }
+    .lobby-admin-badge {
+      font-size: 0.65rem; color: #ff6b00; font-weight: 700;
+      background: rgba(255,107,0,0.15); padding: 2px 6px;
+      border-radius: 3px; letter-spacing: 1px;
+    }
+    .lobby-vs {
+      display: flex; align-items: center; justify-content: center;
+      color: #444; font-weight: 700; font-size: 0.9rem;
+      min-width: 32px;
+    }
+    .lobby-team-btn {
+      width: 100%; padding: 8px; font-size: 0.85rem;
+    }
+    .lobby-team-a-btn { border: 1px solid rgba(50,120,220,0.3); }
+    .lobby-team-a-btn:hover:not(:disabled) { background: rgba(50,120,220,0.15); }
+    .lobby-team-a-btn.lobby-team-btn-active {
+      background: rgba(50,120,220,0.25); border-color: #5b9dff;
+    }
+    .lobby-team-b-btn { border: 1px solid rgba(220,60,60,0.3); }
+    .lobby-team-b-btn:hover:not(:disabled) { background: rgba(220,60,60,0.15); }
+    .lobby-team-b-btn.lobby-team-btn-active {
+      background: rgba(220,60,60,0.25); border-color: #ff5b5b;
+    }
+    .lobby-unassigned {
+      font-size: 0.8rem; color: #666; text-align: center; padding: 4px 0;
+    }
+    .lobby-unassigned-label { color: #555; }
+    .lobby-settings {
+      padding: 12px; background: rgba(0,0,0,0.2); border-radius: 6px;
+    }
+    .lobby-settings-title {
+      font-size: 0.75rem; color: #666; text-transform: uppercase;
+      letter-spacing: 1px; margin-bottom: 8px;
+    }
+    .lobby-settings-grid {
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .lobby-setting-row {
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .lobby-setting-label { font-size: 0.85rem; color: #aaa; }
+    .lobby-select {
+      padding: 6px 10px; background: #0f3460;
+      border: 1px solid #1a4a7a; border-radius: 4px;
+      color: #ccc; font-size: 0.85rem; outline: none; cursor: pointer;
+    }
+    .lobby-select:focus { border-color: #ff6b00; }
+    .lobby-select:disabled { opacity: 0.5; cursor: not-allowed; }
+    .lobby-status {
+      text-align: center; font-size: 0.85rem; color: #888; padding: 4px 0;
+    }
+    .lobby-bottom-row {
+      display: flex; gap: 12px; justify-content: space-between;
+    }
+    .lobby-start-btn { flex: 1; }
   </style>
 </head>
 <body>

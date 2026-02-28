@@ -1,6 +1,36 @@
 # BrowserStrike — Notes for next iteration
 
 ## Completed this session
+- TASK-017 (Lobby UI: room code, team selection, settings, start game)
+  - Created packages/client/src/ui/LobbyScreen.ts:
+    - Room code display (large, monospace, orange) + Copy button with clipboard API
+    - Two team columns (Team A blue, Team B red) with player lists
+    - Join Team A / Join Team B buttons, highlights current team
+    - Unassigned players section
+    - Admin settings panel: mode (1v1/2v2), map (all 4 maps), rounds to win (5/7/10/13)
+    - Non-admin sees settings as read-only (disabled selects)
+    - Start Game button: visible only to admin, disabled until teams staffed
+    - Leave button returns to menu
+    - Status messages: waiting for players, waiting for host
+    - HOST badge on admin player, local player highlighted orange
+    - update() method syncs from Colyseus state, render() rebuilds UI
+    - escapeHtml() for XSS prevention on nicknames
+  - Updated packages/server/src/rooms/GameRoom.ts:
+    - 'updateSettings' handler: admin-only, validates mode/mapId/roundsToWin
+    - Rebuilds CollisionWorld when mapId changes
+    - 'startGame' handler: admin-only, validates teams staffed per mode
+    - Transitions status to 'weapon_select' on start
+  - Updated packages/client/src/App.ts:
+    - Added initLobbyScreen() — creates LobbyScreen and wires callbacks
+    - onJoinTeam sends 'joinTeam', onUpdateSettings sends 'updateSettings'
+    - onStartGame sends 'startGame', onLeave disconnects and returns to menu
+    - syncLobbyState() reads Colyseus state and updates LobbyScreen
+    - Polls lobby state every 200ms via setInterval while in LOBBY
+    - Auto-transitions to PLAYING when server status becomes weapon_select/playing
+    - Cleans up interval on leaving LOBBY state
+  - Updated packages/client/index.html:
+    - Full CSS for lobby panel, team columns, player lists, settings, buttons
+
 - TASK-016 (Main Menu UI: nickname input, create/join room)
   - Created packages/client/src/ui/MenuScreen.ts:
     - Dark theme panel (#1a1a2e bg, #16213e panel, #ff6b00 accents)
@@ -83,12 +113,11 @@
   - Fixed server dev script: added --tsconfig flag to tsx for legacy decorator support
 
 ## Current state
-- TASK-001 through TASK-016 + TASK-020 all done
-- Server: boots on 2567, room codes, nicknames, move/look with physics+collisions, game loop at 20Hz
-- Client: Main Menu UI with nickname/create/join, NetworkManager, App state machine, 3D warehouse scene with FPS controls, physics, weapon model, remote player capsules synced via Colyseus
+- TASK-001 through TASK-017 + TASK-020 all done
+- Server: boots on 2567, room codes, nicknames, move/look with physics+collisions, game loop at 20Hz, updateSettings + startGame handlers
+- Client: Main Menu → Lobby → Playing flow, NetworkManager, App state machine, 3D warehouse scene with FPS controls, physics, weapon model, remote player capsules synced via Colyseus
 
 ## Next priority tasks (all deps met)
-- TASK-017: Lobby UI (deps: TASK-014, TASK-016 done) — critical, blocks round system
 - TASK-019: Shooting system client (deps: TASK-014 done) — critical
 - TASK-018: Game HUD (deps: TASK-014 done) — high
 - TASK-021: Client-side prediction (deps: TASK-020 done) — high
@@ -125,3 +154,8 @@
 - Input sending: every frame when pointer locked, InputMessage with seq/keys/yaw/pitch/deltaTime
 - Remote player sync: onStateChange reads state.players MapSchema, updates capsule positions
 - onPlayerAdd/onPlayerRemove handle dynamic spawn/despawn of capsule meshes
+- LobbyScreen polls Colyseus state every 200ms via setInterval (not event-driven)
+- LobbyScreen auto-transitions to PLAYING when server status !== 'lobby'
+- updateSettings rebuilds CollisionWorld on map change
+- startGame validates team staffing: 1 per team for 1v1, 2 per team for 2v2
+- Admin reassignment on leave already handled in GameRoom.onLeave()

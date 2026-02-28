@@ -194,7 +194,7 @@
         "Шаг 4: Админ нажимает «Начать» → статус комнаты меняется на weapon_select"
       ],
       "dependencies": ["TASK-014", "TASK-016"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-018",
