@@ -10,6 +10,7 @@ import { MenuScreen } from './ui/MenuScreen';
 import { LobbyScreen } from './ui/LobbyScreen';
 import { GameHUD } from './ui/GameHUD';
 import { WeaponSelectScreen } from './ui/WeaponSelectScreen';
+import { DamageEffects } from './ui/DamageEffects';
 import { PLAYER_HP, ROUND_TIME_LIMIT, DEFAULT_WEAPON, WEAPON_IDS } from '@browserstrike/shared';
 import type { InputMessage, ShootMessage, Team, GameMode, MapId, RoundsToWin, WeaponId, RoundEndEvent, MatchEndEvent } from '@browserstrike/shared';
 
@@ -43,6 +44,7 @@ export class App {
   private prediction: ClientPrediction | null = null;
   private gameHUD: GameHUD | null = null;
   private weaponSelectScreen: WeaponSelectScreen | null = null;
+  private damageEffects: DamageEffects | null = null;
 
   // Network — always available
   readonly network: NetworkManager;
@@ -333,6 +335,9 @@ export class App {
           this.network.send('selectWeapon', { weapon });
         },
       });
+
+      // Damage effects — vignette + hitmarker
+      this.damageEffects = new DamageEffects(playingScreen);
     }
 
     // Remote players — spawn/despawn capsules from Colyseus state
@@ -351,6 +356,10 @@ export class App {
     if (this.animationFrameId) {
       cancelAnimationFrame(this.animationFrameId);
       this.animationFrameId = 0;
+    }
+    if (this.damageEffects) {
+      this.damageEffects.dispose();
+      this.damageEffects = null;
     }
     if (this.weaponSelectScreen) {
       this.weaponSelectScreen.dispose();
@@ -432,6 +441,17 @@ export class App {
 
     this.network.onMessage('matchEnd', (data: MatchEndEvent) => {
       console.log(`Match ended! Winner: Team ${data.winnerTeam} | Final: ${data.finalScoreA} - ${data.finalScoreB}`);
+    });
+
+    // Hit confirmation — show hitmarker when we hit an enemy
+    this.network.onMessage('hit', (data: { damage: number; isHeadshot: boolean }) => {
+      this.damageEffects?.showHitmarker(data.isHeadshot);
+    });
+
+    // Damage received — show red vignette with direction indicator
+    this.network.onMessage('damaged', (data: { damage: number; isHeadshot: boolean; direction: { x: number; y: number; z: number } }) => {
+      const yaw = this.fpsController?.yaw ?? 0;
+      this.damageEffects?.showDamage(data.damage, data.direction.x, data.direction.z, yaw);
     });
   }
 
@@ -686,6 +706,7 @@ export class App {
     fps.update(dt);
     weapon.update(dt);
     shooting.update(dt);
+    this.damageEffects?.update(dt);
 
     // Apply smooth prediction correction offset
     if (this.prediction) {

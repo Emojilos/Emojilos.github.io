@@ -544,7 +544,7 @@
         "Шаг 4: Хитмаркер исчезает через ~200ms"
       ],
       "dependencies": ["TASK-018", "TASK-024"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-034",

@@ -359,6 +359,31 @@
 - Server: boots on 2567, room codes, nicknames, move/look with physics+collisions, game loop at 20Hz, updateSettings + startGame handlers, shoot handler with ammo/fire-rate validation + server-side hit detection + damage + kill tracking, reload handler with timer, RoundSystem state machine (weapon_select → countdown → playing → round_end → match_end), selectWeapon handler, returnToLobby handler
 - Client: Main Menu → Lobby → Weapon Select → Playing → Match End flow, NetworkManager, App state machine, 3D warehouse scene with FPS controls, physics, **3 weapon models (Deagle/SSG-08/MP9) with switching (1/2/3 keys + scroll)**, shooting system with visual effects + reload + weapon switching, remote player capsules synced via Colyseus, in-game HUD with reload indicator, weapon select screen with 3 cards + timer, match end screen with rematch/quit, round event listeners, client-side prediction with server reconciliation, entity interpolation for smooth remote player movement
 
+## Completed this session (continued 11)
+- TASK-033 (Damage indicator and hitmarker)
+  - Created packages/client/src/ui/DamageEffects.ts:
+    - Damage vignette: 4 red gradient edges (top/bottom/left/right) with directional emphasis
+    - Direction calculated from server 'damaged' event direction vector vs player yaw
+    - Intensity scales with damage amount (0.3–0.8 alpha, capped at 60 damage)
+    - Per-edge weights using cos/sin of relative attack angle with minimum base (0.15)
+    - Linear fade-out over 500ms using stored initial alpha values
+    - Hitmarker: 4 diagonal lines around crosshair center
+    - White lines for body hits, red (#ff3c3c) for headshots
+    - Fade-out over 200ms
+    - update(dt) called every frame for smooth fade transitions
+    - dispose() removes container from DOM
+  - Updated packages/client/index.html:
+    - CSS for .damage-effects container (z-index:11, above HUD z-index:10)
+    - Vignette edges: 30% width/height gradients from rgba(255,0,0,0.7) to transparent
+    - Hitmarker: 4 × 8px×2px lines at 45° angles, positioned around crosshair center
+  - Updated packages/client/src/App.ts:
+    - Import DamageEffects, create in startGameLoop(), dispose in stopGameLoop()
+    - Network listener for 'hit' event: shows hitmarker (isHeadshot determines color)
+    - Network listener for 'damaged' event: shows directional vignette using damage + direction + playerYaw
+    - damageEffects.update(dt) called in animate loop alongside other system updates
+  - Server events already existed (TASK-024): 'hit' sent to shooter, 'damaged' sent to victim
+  - TypeScript compiles cleanly for client, server, and shared packages
+
 ## Next priority tasks (all deps met)
 - TASK-031: Kill Feed UI (deps: TASK-018 done, TASK-024 done) — medium
 - TASK-032: Scoreboard UI (deps: TASK-018 done) — medium
