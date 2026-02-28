@@ -1,6 +1,21 @@
 # BrowserStrike — Notes for next iteration
 
 ## Completed this session
+- TASK-014 (Client router and state machine)
+  - Created packages/client/src/App.ts:
+    - AppState enum: MENU, LOBBY, PLAYING, MATCH_END
+    - App class owns SceneManager, FPSController, WeaponModel, NetworkManager
+    - setState() transitions between screens, shows/hides div containers in #ui-root
+    - Game loop starts on PLAYING enter, stops on leave (disposes 3D resources)
+    - Canvas hidden when not in PLAYING state
+    - Screens created dynamically if not found in HTML
+  - Refactored main.ts from flat script to App instantiation
+    - App instance exposed as window.app for console testing
+  - Updated index.html:
+    - Added screen div containers (menu-screen, lobby-screen, playing-screen, match-end-screen)
+    - Canvas hidden by default (display:none)
+    - Added .screen CSS class for full-viewport screen layout
+
 - TASK-013 (Room System: create/join by code, nickname validation)
   - Enhanced GameRoom.ts:
     - Added nickname validation: 3-16 chars, latin letters + digits + underscores only
@@ -20,15 +35,16 @@
   - Fixed server dev script: added --tsconfig flag to tsx for legacy decorator support
 
 ## Current state
-- TASK-001 through TASK-008 + TASK-012 + TASK-013 all done
+- TASK-001 through TASK-008 + TASK-012 through TASK-014 all done
 - Server boots on port 2567, generates room codes, validates nicknames, manages players
 - Client has NetworkManager ready for creating/joining rooms
 - Client builds and type-checks; 3D warehouse scene with FPS controls, physics, weapon model
 
 ## Next priority tasks (all deps met)
-- TASK-009: Shooting system / raycasting (deps: TASK-008 done) — high priority
-- TASK-014: Main Menu UI (deps: TASK-013 done, TASK-003 done) — critical, blocks lobby chain
-- TASK-042: Room auto-destroy (deps: TASK-013 done) — medium priority
+- TASK-015: Server game loop + move/look (no deps) — critical
+- TASK-016: Main Menu UI (deps: TASK-014 done) — critical, blocks lobby
+- TASK-018: Game HUD (deps: TASK-014 done) — high
+- TASK-019: Shooting system client (deps: TASK-014 done) — critical
 
 ## Notes
 - @colyseus/schema v2.0.37 uses legacy decorators (experimentalDecorators: true)
@@ -48,3 +64,7 @@
 - Scene uses PCFSoftShadowMap, fog (30-60 range), directional light shadow camera covers 25 units
 - Weapon overlay uses separate scene+camera with autoClear=false, clearDepth before render
 - Deagle recoil: 120ms duration, sin-based kick curve, 0.04 up / 0.06 back / 0.15 rad rotation
+- App class: setState('playing') starts game loop, setState('menu') stops it and disposes 3D
+- App exposed as window.app for console testing: app.setState('playing'), app.setState('menu')
+- Screen containers in #ui-root: menu-screen, lobby-screen, playing-screen, match-end-screen
+- Canvas is display:none except when in PLAYING state

@@ -17,816 +17,616 @@
       "ЗАПРЕЩЕНО удалять или редактировать задачи — только менять status"
     ]
   },
-  "architecture": {
-    "structure": "monorepo с npm workspaces: packages/shared, packages/server, packages/client",
-    "client": "Three.js + TypeScript + Vite, HTML/CSS overlay для UI",
-    "server": "Colyseus (Node.js), авторитарная модель",
-    "shared": "Типы, константы, физика движения — единый источник правды"
-  },
   "tasks": [
     {
       "id": "TASK-001",
       "category": "infrastructure",
-      "priority": "critical",
-      "description": "Инициализация монорепо: корневой package.json с npm workspaces, tsconfig.base.json, .gitignore, структура packages/shared, packages/client, packages/server",
-      "acceptance_criteria": [
-        "Корневой package.json с workspaces: ['packages/shared', 'packages/server', 'packages/client']",
-        "tsconfig.base.json с общими настройками TypeScript (strict, ES2020, moduleResolution: bundler)",
-        ".gitignore покрывает node_modules, dist, .env",
-        "Каждый пакет имеет свой package.json и tsconfig.json, наследующий от base",
-        "npm install выполняется без ошибок из корня"
-      ],
-      "test_steps": [
-        "Шаг 1: npm install из корня проекта",
-        "Шаг 2: Убедиться, что node_modules создан и symlinks между пакетами работают",
-        "Шаг 3: tsc --noEmit в каждом пакете проходит без ошибок"
-      ],
-      "dependencies": [],
+      "priority": "done",
+      "description": "Монорепо: npm workspaces, tsconfig, shared package",
       "status": "done"
     },
     {
       "id": "TASK-002",
       "category": "infrastructure",
-      "priority": "critical",
-      "description": "Настройка packages/shared: константы игры (TICK_RATE, PLAYER_SPEED, GRAVITY, etc.), конфиг оружия (damage, fireRate, magazine для deagle/ssg08/mp9), базовые типы (GameStatus, Team, WeaponId, PlayerState, InputMessage, ShootMessage)",
-      "acceptance_criteria": [
-        "packages/shared/src/constants/game.ts — все игровые константы из PRD",
-        "packages/shared/src/constants/weapons.ts — конфиг 3 видов оружия с точными значениями из PRD",
-        "packages/shared/src/types/ — интерфейсы для game, player, weapons, network, room",
-        "Barrel export через packages/shared/src/index.ts",
-        "Пакет собирается и импортируется из client/server"
-      ],
-      "test_steps": [
-        "Шаг 1: tsc --noEmit в packages/shared",
-        "Шаг 2: Проверить, что import { WEAPONS, PLAYER_SPEED } from '@browserstrike/shared' работает",
-        "Шаг 3: Убедиться, что значения оружия соответствуют PRD (Deagle body=35, head=70, mag=7 и т.д.)"
-      ],
-      "dependencies": ["TASK-001"],
+      "priority": "done",
+      "description": "Shared: константы, типы, конфиг оружия",
       "status": "done"
     },
     {
       "id": "TASK-003",
       "category": "infrastructure",
-      "priority": "critical",
-      "description": "Настройка packages/client: Vite + TypeScript + Three.js. index.html с canvas и ui-root div. Базовый main.ts, который инициализирует Three.js сцену (пустую) и отображает её",
-      "acceptance_criteria": [
-        "vite.config.ts настроен для TypeScript и Three.js",
-        "index.html содержит <canvas id='game'> и <div id='ui-root'>",
-        "npm run dev запускает dev-сервер на localhost",
-        "В браузере отображается Three.js canvas с чёрной/тёмной сценой",
-        "Импорт из @browserstrike/shared работает"
-      ],
-      "test_steps": [
-        "Шаг 1: cd packages/client && npm run dev",
-        "Шаг 2: Открыть http://localhost:5173 в браузере",
-        "Шаг 3: Убедиться, что canvas отображается без ошибок в консоли",
-        "Шаг 4: npm run build проходит без ошибок"
-      ],
-      "dependencies": ["TASK-001"],
+      "priority": "done",
+      "description": "Клиент: Vite + TypeScript + Three.js",
       "status": "done"
     },
     {
       "id": "TASK-004",
       "category": "infrastructure",
-      "priority": "critical",
-      "description": "Настройка packages/server: Colyseus сервер с базовым GameRoom. Сервер стартует, комната создаётся и принимает WebSocket-подключения",
-      "acceptance_criteria": [
-        "packages/server/src/index.ts — запуск Colyseus сервера",
-        "packages/server/src/rooms/GameRoom.ts — базовая комната с onCreate/onJoin/onLeave",
-        "npm run dev запускает сервер на указанном порту",
-        "Клиент может подключиться к серверу через Colyseus SDK",
-        "Импорт из @browserstrike/shared работает"
-      ],
-      "test_steps": [
-        "Шаг 1: cd packages/server && npm run dev",
-        "Шаг 2: Сервер запускается без ошибок на порту (2567 по умолчанию)",
-        "Шаг 3: Обращение к http://localhost:2567 возвращает ответ",
-        "Шаг 4: Логи показывают 'GameRoom registered'"
-      ],
-      "dependencies": ["TASK-001", "TASK-002"],
+      "priority": "done",
+      "description": "Сервер: Colyseus с GameRoom",
       "status": "done"
     },
     {
       "id": "TASK-005",
       "category": "functional",
-      "priority": "critical",
-      "description": "Базовый 3D рендеринг: SceneManager (Scene, Camera, Renderer, освещение). Прототип карты из примитивов Three.js — пол, стены, ящики. Простая low-poly сцена для тестирования движения",
-      "acceptance_criteria": [
-        "SceneManager.ts: инициализация WebGLRenderer, PerspectiveCamera, Scene",
-        "Рендерер привязан к canvas#game, заполняет экран, resize работает",
-        "Освещение: AmbientLight + DirectionalLight",
-        "Прототип карты: пол (PlaneGeometry), 4 стены, 5-8 ящиков (BoxGeometry) разного размера",
-        "Сцена визуально напоминает склад (Warehouse) из PRD"
-      ],
-      "test_steps": [
-        "Шаг 1: npm run dev, открыть браузер",
-        "Шаг 2: Видна 3D сцена с полом, стенами и ящиками",
-        "Шаг 3: Изменение размера окна корректно масштабирует canvas",
-        "Шаг 4: FPS >= 60 (проверить через devtools performance)"
-      ],
-      "dependencies": ["TASK-003"],
+      "priority": "done",
+      "description": "3D сцена: прототип Warehouse из примитивов",
       "status": "done"
     },
     {
       "id": "TASK-006",
       "category": "functional",
-      "priority": "critical",
-      "description": "FPS-контроллер: InputManager (WASD + мышь), Pointer Lock API, камера от первого лица. Игрок может ходить по сцене и смотреть вокруг мышью",
-      "acceptance_criteria": [
-        "InputManager.ts: отслеживание нажатых клавиш (WASD, Space) и дельты мыши",
-        "PointerLock.ts: активация по клику на canvas, Esc для выхода",
-        "Камера вращается по yaw/pitch от движения мыши",
-        "Pitch ограничен (-89° до +89°)",
-        "WASD двигает камеру относительно направления взгляда",
-        "Скорость движения ~250 units/sec (из shared/constants)"
-      ],
-      "test_steps": [
-        "Шаг 1: Кликнуть на canvas — курсор захватывается (Pointer Lock)",
-        "Шаг 2: Движение мыши вращает камеру плавно",
-        "Шаг 3: WASD перемещает игрока в соответствующих направлениях",
-        "Шаг 4: Esc выходит из Pointer Lock",
-        "Шаг 5: Диагональное движение (W+A) не быстрее прямого (нормализация)"
-      ],
-      "dependencies": ["TASK-005", "TASK-002"],
+      "priority": "done",
+      "description": "FPS-контроллер: WASD + мышь + Pointer Lock",
       "status": "done"
     },
     {
       "id": "TASK-007",
       "category": "functional",
-      "priority": "critical",
-      "description": "Физика движения: гравитация, прыжок (Space), коллизии с геометрией карты. Shared-функция applyMovement() используется для расчёта позиции",
-      "acceptance_criteria": [
-        "packages/shared/src/physics/movement.ts: чистая функция applyMovement()",
-        "Гравитация: игрок падает, если нет пола под ногами",
-        "Прыжок: фиксированная высота по Space, только с земли",
-        "Нет bunny-hop (нельзя прыгнуть повторно в воздухе)",
-        "Коллизии: игрок не проходит сквозь стены и ящики (AABB коллизии)",
-        "CollisionWorld.ts на клиенте: resolve коллизий с геометрией карты"
-      ],
-      "test_steps": [
-        "Шаг 1: Игрок стоит на полу, не проваливается",
-        "Шаг 2: Space — прыжок, игрок поднимается и опускается",
-        "Шаг 3: Идти в стену — игрок останавливается, не проходит сквозь",
-        "Шаг 4: Идти в ящик — коллизия работает со всех сторон",
-        "Шаг 5: Двойной прыжок невозможен"
-      ],
-      "dependencies": ["TASK-006"],
+      "priority": "done",
+      "description": "Физика: гравитация, прыжок, коллизии AABB",
       "status": "done"
     },
     {
       "id": "TASK-008",
       "category": "functional",
-      "priority": "critical",
-      "description": "Модель оружия от первого лица: Desert Eagle. Простая low-poly модель (или примитив), прикреплённая к камере. Визуальная анимация стрельбы (отдача)",
-      "acceptance_criteria": [
-        "Модель оружия видна в правой нижней части экрана (классическая FPS-позиция)",
-        "Модель следует за камерой при повороте",
-        "ЛКМ — выстрел: визуальная отдача (покачивание модели вверх-назад)",
-        "Анимация отдачи плавная, возврат в исходное положение",
-        "Полуавтомат: один клик — один выстрел (нет автоогня при зажатии)",
-        "Скорострельность ограничена (~2 выстр/сек = 500ms между выстрелами)"
-      ],
-      "test_steps": [
-        "Шаг 1: Видна модель оружия при запуске",
-        "Шаг 2: ЛКМ — модель дёргается вверх (отдача) и возвращается",
-        "Шаг 3: Зажать ЛКМ — только один выстрел",
-        "Шаг 4: Быстрые клики ограничены скорострельностью"
-      ],
-      "dependencies": ["TASK-006"],
+      "priority": "done",
+      "description": "Модель Deagle с анимацией отдачи",
       "status": "done"
     },
     {
       "id": "TASK-009",
-      "category": "functional",
-      "priority": "high",
-      "description": "Система стрельбы (клиентская часть): raycasting при ЛКМ, визуальные эффекты (вспышка дула, след пули). Базовая хитдетекция по объектам сцены",
-      "acceptance_criteria": [
-        "При ЛКМ: raycast из центра камеры вперёд",
-        "Вспышка дула (muzzle flash): кратковременный point light или спрайт",
-        "Bullet tracer: тонкая линия от оружия до точки попадания",
-        "При попадании в объект: визуальный маркер (decal/частица) в точке попадания",
-        "Raycaster.ts: обёртка над Three.js Raycaster"
-      ],
-      "test_steps": [
-        "Шаг 1: ЛКМ — видна вспышка дула",
-        "Шаг 2: Стрельба в стену — виден маркер попадания",
-        "Шаг 3: Стрельба в ящик — маркер на ящике",
-        "Шаг 4: Стрельба в воздух — нет маркера (или маркер на дальней стене)"
-      ],
-      "dependencies": ["TASK-008"],
-      "status": "pending"
+      "category": "infrastructure",
+      "priority": "done",
+      "description": "CJS-совместимость shared package для Colyseus сервера",
+      "status": "done"
     },
     {
       "id": "TASK-010",
-      "category": "functional",
-      "priority": "high",
-      "description": "Система патронов и перезарядка: счётчик патронов, автоперезарядка при пустом магазине, ручная перезарядка по R. Анимация перезарядки",
-      "acceptance_criteria": [
-        "Текущие патроны / макс. в магазине отслеживаются",
-        "Каждый выстрел уменьшает счётчик на 1",
-        "При 0 патронов: автоперезарядка (Deagle 2 сек)",
-        "R: ручная перезарядка (если магазин не полон)",
-        "Во время перезарядки стрельба невозможна",
-        "Визуальная анимация перезарядки (опускание/подъём оружия)",
-        "Перезарядка прерывается при смене оружия (подготовка для TASK-016)"
-      ],
-      "test_steps": [
-        "Шаг 1: Стрелять 7 раз (Deagle mag=7) — каждый раз счётчик уменьшается",
-        "Шаг 2: После 7-го выстрела — автоперезарядка начинается",
-        "Шаг 3: Через 2 секунды — магазин полон (7/7)",
-        "Шаг 4: Расстрелять 3 патрона, нажать R — перезарядка до 7/7",
-        "Шаг 5: Во время перезарядки ЛКМ ничего не делает"
-      ],
-      "dependencies": ["TASK-009"],
-      "status": "pending"
+      "category": "infrastructure",
+      "priority": "done",
+      "description": "Shared: applyMovement() — чистая функция для клиента и сервера",
+      "status": "done"
     },
     {
       "id": "TASK-011",
-      "category": "ui",
-      "priority": "critical",
-      "description": "Базовый HUD: прицел (crosshair), полоса HP (100/100), счётчик патронов. HTML/CSS overlay поверх canvas",
-      "acceptance_criteria": [
-        "Прицел: крестик по центру экрана (4 линии + опциональная точка)",
-        "HP: число или полоска внизу по центру (100/100)",
-        "Патроны: текущие/магазин внизу справа (7/7 для Deagle)",
-        "HUD использует HTML/CSS overlay, не WebGL",
-        "pointer-events: none на элементах HUD",
-        "Элементы не закрывают критические зоны обзора"
-      ],
-      "test_steps": [
-        "Шаг 1: Запустить игру — виден прицел по центру",
-        "Шаг 2: HP отображается внизу (100)",
-        "Шаг 3: Патроны отображаются внизу справа (7/7)",
-        "Шаг 4: При стрельбе счётчик патронов обновляется",
-        "Шаг 5: Клик через HUD элементы проходит к canvas"
-      ],
-      "dependencies": ["TASK-010"],
-      "status": "pending"
+      "category": "infrastructure",
+      "priority": "done",
+      "description": "Shared: типы сообщений (InputMessage, ShootMessage и др.)",
+      "status": "done"
     },
     {
       "id": "TASK-012",
-      "category": "infrastructure",
-      "priority": "critical",
-      "description": "Colyseus State Schema: GameState, PlayerSchema, SettingsSchema, KillEventSchema. Полная серверная модель состояния по PRD section 4.1",
-      "acceptance_criteria": [
-        "GameState.ts: roomCode, status (lobby|weapon_select|playing|round_end|match_end), settings, scores, players Map, killFeed",
-        "PlayerSchema.ts: sessionId, nickname, team, isAlive, hp, position, rotation, currentWeapon, ammo, isReloading, kills, deaths",
-        "SettingsSchema.ts: mode (1v1|2v2), mapId, roundsToWin, roundTimeLimit",
-        "KillEventSchema.ts: killerNickname, victimNickname, weapon, isHeadshot, timestamp",
-        "Все схемы правильно декорированы @type() для Colyseus сериализации"
-      ],
-      "test_steps": [
-        "Шаг 1: tsc --noEmit в packages/server проходит без ошибок",
-        "Шаг 2: Создание экземпляра GameState и присвоение значений полей работает",
-        "Шаг 3: Добавление PlayerSchema в Map players работает"
-      ],
-      "dependencies": ["TASK-004", "TASK-002"],
+      "category": "functional",
+      "priority": "done",
+      "description": "State Schema: GameState, PlayerSchema, SettingsSchema, KillEventSchema",
       "status": "done"
     },
     {
       "id": "TASK-013",
       "category": "functional",
-      "priority": "critical",
-      "description": "Система комнат: создание комнаты с генерацией 6-символьного кода, подключение по коду, хранение никнейма. GameRoom.onCreate и onJoin",
-      "acceptance_criteria": [
-        "При создании комнаты генерируется уникальный 6-символьный код (буквы + цифры)",
-        "Клиент может создать комнату (client.create('game_room', { nickname }))",
-        "Клиент может присоединиться по коду (client.joinById(roomId, { nickname }))",
-        "Никнейм валидируется: 3-16 символов, латиница + цифры",
-        "При подключении создаётся PlayerSchema с никнеймом",
-        "При отключении PlayerSchema удаляется",
-        "Максимум 4 игрока в комнате"
-      ],
-      "test_steps": [
-        "Шаг 1: Клиент создаёт комнату — получает roomId/код",
-        "Шаг 2: Второй клиент подключается по коду — оба видят друг друга в state.players",
-        "Шаг 3: Никнейм 'ab' (2 символа) отклоняется",
-        "Шаг 4: 5-й игрок не может подключиться",
-        "Шаг 5: Отключение игрока удаляет его из state.players"
-      ],
-      "dependencies": ["TASK-012"],
+      "priority": "done",
+      "description": "Система комнат: создание/подключение по коду, никнеймы, команды",
       "status": "done"
     },
     {
       "id": "TASK-014",
-      "category": "ui",
+      "category": "infrastructure",
       "priority": "critical",
-      "description": "Главный экран (Main Menu): ввод никнейма, кнопки 'Создать комнату' / 'Присоединиться', поле ввода кода комнаты. Стиль CS2 (тёмные тона, оранжевые акценты)",
+      "description": "Клиентский роутер экранов и стейт-машина приложения. Создать AppState enum (MENU | LOBBY | PLAYING | MATCH_END), роутер экранов, показывающий/скрывающий div-контейнеры в #ui-root. Рефакторинг main.ts из плоского скрипта в класс App, владеющий SceneManager, NetworkManager и стейт-машиной.",
       "acceptance_criteria": [
-        "Экран отображается при загрузке страницы",
-        "Поле ввода никнейма с валидацией (3-16 символов)",
-        "Кнопка 'Создать комнату' — создаёт комнату на сервере",
-        "Кнопка 'Присоединиться' — показывает поле ввода кода",
-        "Поле ввода кода: 6 символов, автокапитализация",
-        "Стилистика: тёмно-серый фон, оранжевые акценты, шрифт Rajdhani/Barlow Condensed",
-        "При успешном подключении — переход на экран лобби"
+        "Существует AppState enum с состояниями MENU, LOBBY, PLAYING, MATCH_END",
+        "Класс App управляет переходами между экранами",
+        "В состоянии MENU показывается пустой div#menu-screen, в PLAYING запускается game loop",
+        "Game loop корректно стартует/останавливается при переходах",
+        "main.ts инициализирует App, а не запускает game loop напрямую"
       ],
       "test_steps": [
-        "Шаг 1: Открыть страницу — виден Main Menu",
-        "Шаг 2: Ввести никнейм < 3 символов — показывается ошибка",
-        "Шаг 3: Ввести никнейм 'Player1', нажать 'Создать' — переход в лобби",
-        "Шаг 4: Открыть вторую вкладку, ввести код — подключение к той же комнате"
+        "Шаг 1: npm run dev в packages/client",
+        "Шаг 2: Открыть браузер — должен показываться пустой экран меню (не сразу game loop)",
+        "Шаг 3: Через console вызвать app.setState('playing') — должна запуститься 3D сцена",
+        "Шаг 4: Через console вызвать app.setState('menu') — game loop должен остановиться"
       ],
-      "dependencies": ["TASK-013", "TASK-003"],
-      "status": "pending"
+      "dependencies": [],
+      "status": "done"
     },
     {
       "id": "TASK-015",
-      "category": "ui",
+      "category": "functional",
       "priority": "critical",
-      "description": "Экран лобби: код комнаты (копирование), настройки матча (админ), выбор команд (Team A / Team B), кнопка 'Начать игру'",
+      "description": "Серверный game loop и обработка move/look сообщений. Добавить setSimulationInterval с TICK_RATE в GameRoom.onCreate. Обработчик move: валидация инпута, вызов applyMovement(), обновление PlayerSchema. Обработчик look: обновление yaw/pitch. Добавить lastProcessedSeq в PlayerSchema. Серверный CollisionWorld: перенести логику коллизий в shared (чистая математика без Three.js) или создать серверную версию.",
       "acceptance_criteria": [
-        "Код комнаты отображается крупно с кнопкой 'Копировать'",
-        "Админ видит настройки: режим (1v1/2v2), карта, раунды до победы (5/7/10/13)",
-        "Не-админы видят настройки в read-only",
-        "Два столбца Team A / Team B с кнопками 'Присоединиться'",
-        "Игроки отображаются в своих командах по никнеймам",
-        "Кнопка 'Начать' доступна только админу и только при укомплектованных командах",
-        "Нажатие 'Начать' отправляет startGame на сервер"
+        "GameRoom имеет setSimulationInterval на TICK_RATE",
+        "Обработчик move вызывает applyMovement() и обновляет позицию игрока",
+        "Обработчик look обновляет rotYaw/rotPitch",
+        "lastProcessedSeq отправляется обратно клиенту через PlayerSchema",
+        "Сервер проверяет инпуты на NaN, Infinity, отрицательный deltaTime",
+        "Сервер применяет коллизии со стенами карты (игрок не проходит сквозь стены)"
       ],
       "test_steps": [
-        "Шаг 1: Создать комнату — виден экран лобби с кодом",
-        "Шаг 2: Кнопка 'Копировать' копирует код в буфер обмена",
-        "Шаг 3: Выбрать Team A — никнейм появляется в столбце Team A",
-        "Шаг 4: Второй игрок выбирает Team B — оба видят обе команды",
-        "Шаг 5: 'Начать' неактивна, пока команды не полны (1v1: по 1 в каждой)"
+        "Шаг 1: npm run dev в packages/server",
+        "Шаг 2: Подключиться к серверу через colyseus playground или тестовый клиент",
+        "Шаг 3: Отправить move сообщение — позиция игрока в state должна измениться",
+        "Шаг 4: Отправить move с NaN — сервер должен отклонить (без краша)"
+      ],
+      "dependencies": [],
+      "status": "pending"
+    },
+    {
+      "id": "TASK-016",
+      "category": "ui",
+      "priority": "critical",
+      "description": "Main Menu UI: ввод никнейма, создание/присоединение к комнате. HTML/CSS overlay с полем никнейма (валидация 3-16 символов), кнопки «Создать комнату» и «Присоединиться», поле кода комнаты (6 символов, автокапитализация). Тёмная тема (#1a1a2e фон, #ff6b00 акценты). Подключение к NetworkManager.",
+      "acceptance_criteria": [
+        "Экран меню отображается при загрузке страницы",
+        "Никнейм валидируется (3-16 символов, a-zA-Z0-9_)",
+        "Кнопка «Создать комнату» вызывает NetworkManager.createRoom()",
+        "Кнопка «Присоединиться» + поле кода вызывает NetworkManager.joinByCode()",
+        "Ошибки отображаются пользователю (неверный код, комната полна)",
+        "При успешном подключении — переход в состояние LOBBY"
+      ],
+      "test_steps": [
+        "Шаг 1: Открыть клиент — экран меню с полем никнейма и кнопками",
+        "Шаг 2: Ввести никнейм < 3 символов → ошибка валидации",
+        "Шаг 3: Ввести валидный никнейм, нажать «Создать» → переход в лобби (при запущенном сервере)",
+        "Шаг 4: Во второй вкладке ввести код из первой → успешное подключение"
       ],
       "dependencies": ["TASK-014"],
       "status": "pending"
     },
     {
-      "id": "TASK-016",
-      "category": "functional",
-      "priority": "critical",
-      "description": "Синхронизация позиций игроков: клиент отправляет input, сервер обновляет позиции, другие клиенты видят движение. NetworkManager на клиенте для Colyseus",
-      "acceptance_criteria": [
-        "NetworkManager.ts: подключение к Colyseus, подписка на state changes",
-        "Клиент отправляет input (keys, yaw, pitch, deltaTime) с sequence number",
-        "Сервер получает input, применяет движение (shared/movement.ts), обновляет PlayerSchema",
-        "MovementSystem.ts на сервере: обработка очереди инпутов",
-        "Другие клиенты получают обновлённые позиции через state sync",
-        "Игрок видит других игроков как 3D-объекты (капсула/бокс placeholder)"
-      ],
-      "test_steps": [
-        "Шаг 1: Два клиента подключены к одной комнате",
-        "Шаг 2: Игрок A двигается — Игрок B видит его движение",
-        "Шаг 3: Оба двигаются одновременно — оба видят друг друга",
-        "Шаг 4: Позиции обновляются плавно (не телепортация)"
-      ],
-      "dependencies": ["TASK-013", "TASK-007"],
-      "status": "pending"
-    },
-    {
       "id": "TASK-017",
-      "category": "functional",
-      "priority": "high",
-      "description": "Client-side prediction + server reconciliation: клиент предсказывает своё движение, при получении серверного состояния — реконсиляция (replay unacked inputs)",
+      "category": "ui",
+      "priority": "critical",
+      "description": "Lobby UI: код комнаты, выбор команд, настройки, старт игры. Код комнаты крупно + кнопка «Копировать». Два столбца Team A / Team B с кнопками перехода. Панель настроек для админа (режим, карта, раунды). Кнопка «Начать игру» для админа. Серверные обработчики startGame и updateSettings.",
       "acceptance_criteria": [
-        "Prediction.ts: буфер pending inputs с sequence numbers",
-        "Клиент применяет движение мгновенно (prediction) используя shared/movement.ts",
-        "При получении серверного состояния: сравнение с предсказанным",
-        "Если расхождение: snap к серверной позиции + replay оставшихся inputs",
-        "Движение ощущается мгновенно без задержки",
-        "lastProcessedSeq передаётся от сервера к клиенту"
+        "Код комнаты отображается и копируется по кнопке",
+        "Игроки могут переключаться между Team A и Team B",
+        "Админ видит настройки (режим, карта, раунды), не-админ — read-only",
+        "Кнопка «Начать» активна только когда команды укомплектованы",
+        "Сервер обрабатывает startGame и переводит status в weapon_select",
+        "Сервер обрабатывает updateSettings (только от админа)"
       ],
       "test_steps": [
-        "Шаг 1: Движение ощущается мгновенно (нет ожидания сервера)",
-        "Шаг 2: При искусственном лаге (throttle в devtools) движение всё ещё плавное",
-        "Шаг 3: Серверная позиция и клиентская совпадают (проверить в логах)"
+        "Шаг 1: Создать комнату → лобби с кодом, настройками, пустыми командами",
+        "Шаг 2: Присоединиться вторым игроком → появляется в списке unassigned",
+        "Шаг 3: Оба игрока выбирают команды → кнопка «Начать» активна",
+        "Шаг 4: Админ нажимает «Начать» → статус комнаты меняется на weapon_select"
       ],
-      "dependencies": ["TASK-016"],
+      "dependencies": ["TASK-014", "TASK-016"],
       "status": "pending"
     },
     {
       "id": "TASK-018",
-      "category": "functional",
+      "category": "ui",
       "priority": "high",
-      "description": "Entity interpolation: позиции удалённых игроков интерполируются между серверными обновлениями для плавного движения",
+      "description": "Базовый игровой HUD: прицел, HP, патроны, счёт раундов, таймер. Прицел — CSS крест (4 линии + опциональная точка), зелёный по умолчанию. HP — число внизу по центру. Патроны — «текущие / магазин» + название оружия внизу справа. Счёт раундов — сверху по центру. Таймер раунда — сверху. Все элементы pointer-events: none.",
       "acceptance_criteria": [
-        "Interpolation.ts: буфер последних 2-3 серверных снапшотов для каждого remote player",
-        "Рендеринг remote players с интерполяцией между снапшотами",
-        "Задержка интерполяции: ~2 * (1000/TICK_RATE) ms",
-        "Движение удалённых игроков плавное даже при 20 Hz tick rate",
-        "Ротация (yaw/pitch) тоже интерполируется"
+        "Прицел отображается по центру экрана (CSS, зелёный крест)",
+        "HP отображается внизу по центру",
+        "Патроны и название оружия — внизу справа",
+        "Счёт раундов Team A : Team B — сверху по центру",
+        "Таймер раунда — под счётом",
+        "HUD не перехватывает клики мыши (pointer-events: none)"
       ],
       "test_steps": [
-        "Шаг 1: Два клиента — наблюдать движение другого игрока",
-        "Шаг 2: Движение другого игрока плавное, без рывков",
-        "Шаг 3: Поворот другого игрока плавный"
+        "Шаг 1: Перейти в состояние PLAYING",
+        "Шаг 2: Все элементы HUD видны на экране",
+        "Шаг 3: Pointer Lock работает — HUD не мешает управлению",
+        "Шаг 4: Данные HUD обновляются (HP, патроны) при изменении локального стейта"
       ],
-      "dependencies": ["TASK-016"],
+      "dependencies": ["TASK-014"],
       "status": "pending"
     },
     {
       "id": "TASK-019",
       "category": "functional",
       "priority": "critical",
-      "description": "Серверная хитдетекция: клиент отправляет shoot (timestamp, origin, direction), сервер проверяет попадание через raycast по хитбоксам игроков. Расчёт урона на сервере",
+      "description": "Система стрельбы на клиенте: рейкаст, визуальные эффекты. При выстреле: Three.js Raycaster из камеры, вычисление origin + direction. Отправка shoot сообщения серверу с timestamp. Визуальные эффекты: muzzle flash (point light + sprite, 50ms), tracer (линия, fade), decal на стенах. Применение spread на основе конфига оружия и состояния движения. Клиентский счётчик патронов (оптимистичный).",
       "acceptance_criteria": [
-        "HitDetection.ts: raycast по AABB/сфера хитбоксам игроков",
-        "Хитбоксы: голова (сфера, множитель x2) и тело (капсула/бокс)",
-        "CombatSystem.ts: обработка shoot сообщений, расчёт урона по weapon config",
-        "Урон применяется к HP жертвы на сервере",
-        "При HP <= 0: игрок помечается isAlive=false",
-        "Сервер отправляет hit event клиентам (damage, isHeadshot, direction)",
-        "Rate limiting: нельзя стрелять чаще скорострельности оружия"
+        "При ЛКМ выполняется рейкаст из камеры",
+        "Muzzle flash видна при каждом выстреле (~50ms)",
+        "Tracer line от дула к точке попадания (fade 100-200ms)",
+        "Decal появляется на стене в точке попадания",
+        "Spread увеличивается при движении и стрельбе очередями",
+        "Клиент отправляет shoot сообщение серверу",
+        "Патроны уменьшаются при каждом выстреле, стрельба блокируется при 0"
       ],
       "test_steps": [
-        "Шаг 1: Два клиента, один стреляет в другого — HP жертвы уменьшается",
-        "Шаг 2: Хэдшот (попадание в верхнюю часть) — урон x2",
-        "Шаг 3: HP достигает 0 — игрок погибает (isAlive=false)",
-        "Шаг 4: Попытка стрелять быстрее скорострельности — лишние выстрелы игнорируются"
+        "Шаг 1: Войти в игру, активировать Pointer Lock",
+        "Шаг 2: ЛКМ — виден muzzle flash, tracer, decal на стене",
+        "Шаг 3: Расстрелять магазин Deagle (7 патронов) — стрельба прекращается",
+        "Шаг 4: Стрелять на ходу — spread визуально заметен (разброс попаданий)"
       ],
-      "dependencies": ["TASK-016", "TASK-009"],
+      "dependencies": ["TASK-014"],
       "status": "pending"
     },
     {
       "id": "TASK-020",
-      "category": "functional",
-      "priority": "high",
-      "description": "Lag compensation: сервер хранит буфер снапшотов мира, при обработке выстрела отматывает состояние на timestamp выстрела с учётом пинга",
+      "category": "integration",
+      "priority": "critical",
+      "description": "Синхронизация позиций: отправка инпутов на сервер и отображение других игроков. FPSController отправляет move/look сообщения с sequence number каждый кадр. Создать RemotePlayerManager: спавн/деспавн Three.js капсул для других игроков, обновление позиций из Colyseus state. Цвет капсул по команде (синий Team A, красный Team B).",
       "acceptance_criteria": [
-        "snapshot.ts: кольцевой буфер мировых снапшотов (позиции всех игроков per tick)",
-        "LagCompensation.ts: rewind к нужному тику по timestamp + RTT",
-        "HitDetection использует rewound позиции для raycast",
-        "Восстановление текущих позиций после проверки",
-        "Работает корректно при пинге до 200ms"
+        "FPSController отправляет move сообщения с seq, keys, deltaTime",
+        "FPSController отправляет look сообщения с yaw, pitch",
+        "Другие игроки отображаются как цветные капсулы",
+        "Позиции других игроков обновляются в реальном времени",
+        "При отключении игрока его капсула удаляется",
+        "Цвет капсулы соответствует команде"
       ],
       "test_steps": [
-        "Шаг 1: С throttled connection (100ms latency) попадания регистрируются корректно",
-        "Шаг 2: Стрельба по движущемуся игроку попадает в его 'прошлую' позицию (его позицию с точки зрения стрелка)"
+        "Шаг 1: Запустить сервер и два клиента, подключиться к одной комнате",
+        "Шаг 2: В первом клиенте — двигаться WASD → во втором видна движущаяся капсула",
+        "Шаг 3: Во втором клиенте — двигаться → в первом видна капсула",
+        "Шаг 4: Закрыть один клиент → капсула исчезает во втором"
       ],
-      "dependencies": ["TASK-019"],
+      "dependencies": ["TASK-015"],
       "status": "pending"
     },
     {
       "id": "TASK-021",
-      "category": "functional",
-      "priority": "critical",
-      "description": "Система раундов (серверная): RoundSystem с фазами (lobby → weapon_select → countdown → playing → round_end → match_end). Таймеры переходов, счёт, условия победы",
+      "category": "integration",
+      "priority": "high",
+      "description": "Client-side prediction и server reconciliation. Кольцевой буфер pending inputs (seq, input, результат). При получении серверного стейта: найти lastProcessedSeq, отбросить подтверждённые инпуты, snap к серверной позиции, replay непод- тверждённых через applyMovement(). Порог: >2 units = телепорт, иначе lerp.",
       "acceptance_criteria": [
-        "RoundSystem.ts: state machine с фазами из PRD section 2.4",
-        "weapon_select: 5 секунд на выбор оружия",
-        "countdown: 3-2-1 перед началом раунда",
-        "playing: основной геймплей, таймер раунда (120 сек по умолчанию)",
-        "round_end: 3 секунды пауза, отображение результата",
-        "Раунд заканчивается при смерти всех игроков одной команды",
-        "Счёт: scoreTeamA / scoreTeamB обновляется",
-        "Матч заканчивается при достижении roundsToWin",
-        "Респавн игроков на spawn points между раундами"
+        "Движение отзывчивое — нет задержки при нажатии клавиш",
+        "Буфер хранит pending inputs до подтверждения сервером",
+        "При рассогласовании <2 units — плавная коррекция (lerp)",
+        "При рассогласовании >2 units — телепорт к серверной позиции",
+        "Replay неподтверждённых инпутов после snap"
       ],
       "test_steps": [
-        "Шаг 1: Начать игру из лобби — переход в weapon_select",
-        "Шаг 2: Через 5 сек — countdown 3-2-1",
-        "Шаг 3: Раунд начинается, игроки на spawn points",
-        "Шаг 4: Убить противника — round_end с правильным счётом",
-        "Шаг 5: Новый раунд после паузы",
-        "Шаг 6: Достичь roundsToWin — match_end"
+        "Шаг 1: Подключиться к серверу, двигаться — движение без задержки",
+        "Шаг 2: Движение плавное, без рывков при нормальном пинге",
+        "Шаг 3: Симулировать высокий пинг (throttle в DevTools) — движение остаётся отзывчивым",
+        "Шаг 4: Позиция не расходится с сервером со временем"
       ],
-      "dependencies": ["TASK-019", "TASK-015"],
+      "dependencies": ["TASK-020"],
       "status": "pending"
     },
     {
       "id": "TASK-022",
-      "category": "ui",
+      "category": "integration",
       "priority": "high",
-      "description": "Экран выбора оружия: 3 карточки (Deagle, SSG-08, MP9) с характеристиками, таймер обратного отсчёта, подсветка выбранного",
+      "description": "Entity interpolation для удалённых игроков. Буфер 2-3 серверных снапшотов на каждого удалённого игрока. Интерполяция позиции (lerp) и ротации (lerp yaw/pitch) между буферизованными снапшотами. Задержка рендера: ~2 × (1000/TICK_RATE) ms.",
       "acceptance_criteria": [
-        "3 карточки оружия с названием и характеристиками (урон, скорострельность, магазин)",
-        "Таймер обратного отсчёта (5 сек)",
-        "Клик по карточке выбирает оружие (подсветка)",
-        "По умолчанию выбран Deagle",
-        "При истечении таймера — применяется текущий выбор",
-        "Выбор отправляется на сервер (selectWeapon message)"
+        "Удалённые игроки двигаются плавно (не прыгают между позициями)",
+        "Буфер хранит 2-3 снапшота на игрока",
+        "Интерполяция между снапшотами по времени",
+        "Плавная ротация (без рывков при повороте)"
       ],
       "test_steps": [
-        "Шаг 1: Экран появляется между раундами",
-        "Шаг 2: Видны 3 карточки с правильными характеристиками",
-        "Шаг 3: Клик по SSG-08 — подсветка переключается",
-        "Шаг 4: Таймер уменьшается от 5 до 0",
-        "Шаг 5: После таймера — раунд начинается с выбранным оружием"
+        "Шаг 1: Два клиента в одной комнате",
+        "Шаг 2: Один игрок двигается плавно по кругу — второй видит плавное движение",
+        "Шаг 3: Один игрок поворачивается — второй видит плавный поворот",
+        "Шаг 4: При 20 tick rate движение не выглядит дёрганым"
       ],
-      "dependencies": ["TASK-021"],
+      "dependencies": ["TASK-020"],
       "status": "pending"
     },
     {
       "id": "TASK-023",
       "category": "functional",
       "priority": "high",
-      "description": "Все 3 оружия на клиенте: SSG-08 (bolt-action, высокий урон) и MP9 (автомат, низкий урон, большой магазин). Уникальные модели/примитивы, анимации, скорострельность",
+      "description": "Система патронов и перезарядки (клиент + сервер). Клиент: счётчик патронов, авто-перезарядка при пустом магазине, ручная по R, таймер перезарядки, прерывание при смене оружия. Сервер: трекинг патронов, валидация shoot (reject при ammo=0 или reloading), обработка reload сообщения. Обновление HUD.",
       "acceptance_criteria": [
-        "SSG-08: bolt-action (1 выстрел / 1.5 сек), магазин 10, визуальная отдача больше Deagle",
-        "MP9: автомат (зажать ЛКМ — авто-стрельба ~10 выстр/сек), магазин 30",
-        "Уникальные визуальные модели (хотя бы разные примитивы/формы)",
-        "Переключение оружия по клавишам 1/2/3 или колёсику мыши",
-        "Анимация смены оружия (опускание/поднятие)",
-        "Разброс (spread): увеличивается при движении и стрельбе очередями (MP9)"
+        "Патроны уменьшаются при стрельбе (клиент + сервер синхронно)",
+        "При 0 патронов автоматически начинается перезарядка",
+        "R — ручная перезарядка",
+        "Во время перезарядки стрельба невозможна",
+        "Сервер reject-ит shoot при ammo=0 или isReloading=true",
+        "HUD обновляет счётчик патронов",
+        "Перезарядка прерывается при смене оружия (будущее)"
       ],
       "test_steps": [
-        "Шаг 1: Клавиша 1 — Deagle, 2 — SSG-08, 3 — MP9",
-        "Шаг 2: SSG-08: один выстрел — длинная пауза перед следующим",
-        "Шаг 3: MP9: зажать ЛКМ — автоматическая стрельба",
-        "Шаг 4: MP9: разброс увеличивается при стрельбе очередями",
-        "Шаг 5: Колёсико мыши переключает оружие циклично"
+        "Шаг 1: Стрелять до 0 патронов — авто-перезарядка начинается",
+        "Шаг 2: Нажать R с неполным магазином — перезарядка",
+        "Шаг 3: Во время перезарядки ЛКМ — стрельба не работает",
+        "Шаг 4: HUD показывает актуальное количество патронов"
       ],
-      "dependencies": ["TASK-010", "TASK-022"],
+      "dependencies": ["TASK-019", "TASK-018"],
       "status": "pending"
     },
     {
       "id": "TASK-024",
       "category": "functional",
-      "priority": "high",
-      "description": "Серверная валидация скорости движения и анти-чит проверки: ограничение скорости, rate limiting выстрелов, валидация инпутов",
+      "priority": "critical",
+      "description": "Серверная хитдетекция: рейкаст по хитбоксам, расчёт урона. Обработчик shoot: валидация fire rate и ammo. Серверный рейкаст: луч от origin в direction, проверка пересечения с AABB всех вражеских игроков. Два хитбокса: тело (PLAYER_RADIUS × PLAYER_HEIGHT) и голова (сфера сверху). Расчёт урона из конфига оружия, HEADSHOT_MULTIPLIER. Обновление HP, отправка hit/kill событий, обновление killFeed.",
       "acceptance_criteria": [
-        "Сервер проверяет, что игрок не двигается быстрее PLAYER_SPEED",
-        "Сервер ограничивает частоту выстрелов по fireRate оружия",
-        "Невалидные инпуты отклоняются (неизвестные ключи, NaN значения)",
-        "Throttling: ограничение частоты сообщений от клиента",
-        "rate-limiter.ts: per-player message throttling"
+        "Сервер обрабатывает shoot сообщения с валидацией fire rate",
+        "Рейкаст проверяет пересечение с хитбоксами вражеских игроков",
+        "Попадание в тело: базовый урон оружия",
+        "Попадание в голову: урон × 2 (HEADSHOT_MULTIPLIER)",
+        "При HP <= 0: isAlive=false, инкремент kills/deaths",
+        "Событие hit отправляется жертве (урон, направление, headshot)",
+        "Событие kill добавляется в killFeed",
+        "Дружественный огонь отсутствует (рейкаст только по врагам)"
       ],
       "test_steps": [
-        "Шаг 1: Попытка отправить move с deltaTime=10 (нереально большой) — позиция не прыгает",
-        "Шаг 2: Попытка стрелять чаще fireRate — лишние выстрелы игнорируются",
-        "Шаг 3: Спам сообщениями (100 msg/sec) — throttling срабатывает"
+        "Шаг 1: Два игрока в разных командах, один стреляет в другого",
+        "Шаг 2: HP жертвы уменьшается на серверной стороне",
+        "Шаг 3: Убить игрока (HP=0) → isAlive=false, kills/deaths обновлены",
+        "Шаг 4: Проверить killFeed: содержит запись убийства с оружием и headshot флагом"
       ],
-      "dependencies": ["TASK-019"],
+      "dependencies": ["TASK-023", "TASK-015", "TASK-020"],
       "status": "pending"
     },
     {
       "id": "TASK-025",
-      "category": "ui",
-      "priority": "high",
-      "description": "Kill feed (лента убийств): отображение '[Nickname1] weapon_icon [Nickname2]' в правом верхнем углу, последние 5 событий",
+      "category": "functional",
+      "priority": "medium",
+      "description": "Lag compensation: snapshot buffer и rewind. Кольцевой буфер позиций игроков по тикам (последняя ~1 секунда). При shoot: использовать client timestamp + estimated RTT для определения нужного снапшота. Rewind всех позиций к снапшоту, выполнить рейкаст, восстановить позиции. Максимальный rewind — 200ms.",
       "acceptance_criteria": [
-        "KillFeed.ts: HTML overlay в правом верхнем углу",
-        "Формат: [Killer] 🔫 [Victim] (с иконкой оружия)",
-        "Хэдшот: особое выделение (красный или иконка)",
-        "Максимум 5 последних событий",
-        "Каждое событие исчезает через 5 секунд",
-        "Анимация появления (slide-in)"
+        "SnapshotBuffer сохраняет позиции всех игроков каждый тик",
+        "При shoot — rewind к тику, соответствующему client timestamp",
+        "Рейкаст выполняется по rewound позициям",
+        "Позиции восстанавливаются после рейкаста",
+        "Максимальный rewind ограничен 200ms"
       ],
       "test_steps": [
-        "Шаг 1: Один игрок убивает другого — появляется запись в killfeed",
-        "Шаг 2: Хэдшот — визуально отличается от обычного убийства",
-        "Шаг 3: 6 убийств подряд — только 5 последних видны",
-        "Шаг 4: Через 5 секунд записи исчезают"
+        "Шаг 1: Два игрока, один движется, другой стреляет",
+        "Шаг 2: При нормальном пинге — попадания корректны",
+        "Шаг 3: При throttled соединении (100ms) — попадания всё ещё работают",
+        "Шаг 4: Rewind не превышает 200ms (логирование)"
       ],
-      "dependencies": ["TASK-021"],
+      "dependencies": ["TASK-024"],
       "status": "pending"
     },
     {
       "id": "TASK-026",
-      "category": "ui",
-      "priority": "high",
-      "description": "Scoreboard (Tab): таблица с никнеймами, K/D, пингом. Отображается при зажатом Tab, обновляется в реальном времени",
+      "category": "functional",
+      "priority": "critical",
+      "description": "Раундовая система: state machine на сервере (RoundSystem). Состояния: lobby → weapon_select (5с) → countdown (3с) → playing → round_end (3с) → loop или match_end. weapon_select: приём selectWeapon, таймер 5с. countdown: спавн игроков на spawn points, HP=100, isAlive=true. playing: декремент roundTimer, проверка условий победы (все мертвы в одной команде ИЛИ таймер 120с). round_end: обновление счёта, broadcast roundEnd. match_end: проверка roundsToWin, broadcast matchEnd.",
       "acceptance_criteria": [
-        "Scoreboard.ts: HTML overlay по центру экрана",
-        "Отображается ТОЛЬКО при зажатом Tab",
-        "Столбцы: Nickname, Kills, Deaths, Ping",
-        "Разделение по командам (Team A / Team B)",
-        "Обновляется в реальном времени из server state",
-        "Полупрозрачный фон, стиль CS2"
+        "Стейт-машина корректно переходит между всеми состояниями",
+        "weapon_select длится 5 секунд, принимает выбор оружия",
+        "countdown спавнит игроков с HP=100 на spawn points",
+        "playing отслеживает смерти и таймер раунда",
+        "round_end обновляет счёт победившей команды",
+        "match_end наступает при достижении roundsToWin",
+        "Таймаут раунда (120с) — ничья"
       ],
       "test_steps": [
-        "Шаг 1: Зажать Tab — scoreboard появляется",
-        "Шаг 2: Отпустить Tab — scoreboard исчезает",
-        "Шаг 3: Убийство обновляет K/D в реальном времени",
-        "Шаг 4: Обе команды отображаются раздельно"
+        "Шаг 1: Начать игру из лобби → переход weapon_select → countdown → playing",
+        "Шаг 2: Убить все в одной команде → round_end → weapon_select (следующий раунд)",
+        "Шаг 3: Набрать roundsToWin → match_end",
+        "Шаг 4: Подождать 120с в раунде → round_end (ничья, счёт не меняется)"
       ],
-      "dependencies": ["TASK-021"],
+      "dependencies": ["TASK-024", "TASK-017"],
       "status": "pending"
     },
     {
       "id": "TASK-027",
       "category": "ui",
       "priority": "high",
-      "description": "Счёт раундов и таймер: отображение 'Team A : Team B' сверху по центру, таймер раунда (обратный отсчёт)",
+      "description": "Экран выбора оружия (клиент). 3 карточки с характеристиками из shared/weapons.ts (урон, скорострельность, магазин, перезарядка). Таймер 5 секунд, оранжевая подсветка выбранного. По умолчанию: Deagle. Отправка selectWeapon при выборе. Авто-подтверждение при истечении таймера. Отображается при status === weapon_select.",
       "acceptance_criteria": [
-        "RoundInfo.ts: счёт раундов сверху по центру",
-        "Таймер раунда (обратный отсчёт от roundTimeLimit)",
-        "Номер текущего раунда",
-        "Обновляется в реальном времени из server state",
-        "Countdown 3-2-1 отображается крупно перед раундом"
+        "3 карточки оружия с характеристиками из shared constants",
+        "Таймер обратного отсчёта 5 секунд",
+        "Выбранная карточка подсвечена оранжевым",
+        "По умолчанию выбран Deagle",
+        "Клик по карточке отправляет selectWeapon серверу",
+        "При истечении таймера — текущий выбор подтверждается"
       ],
       "test_steps": [
-        "Шаг 1: Счёт 0:0 в начале матча",
-        "Шаг 2: Выигрыш раунда — счёт обновляется (1:0)",
-        "Шаг 3: Таймер уменьшается каждую секунду",
-        "Шаг 4: Countdown 3-2-1 виден перед началом раунда"
+        "Шаг 1: Начать игру → экран выбора оружия",
+        "Шаг 2: По умолчанию подсвечен Deagle",
+        "Шаг 3: Кликнуть на SSG-08 → карточка подсвечена, сервер получил сообщение",
+        "Шаг 4: Дождаться 5 секунд → экран закрывается, выбрано SSG-08"
       ],
-      "dependencies": ["TASK-021"],
+      "dependencies": ["TASK-026", "TASK-018"],
       "status": "pending"
     },
     {
       "id": "TASK-028",
-      "category": "ui",
-      "priority": "medium",
-      "description": "Индикатор урона: красная виньетка при получении урона с указанием направления (откуда пришёл урон)",
-      "acceptance_criteria": [
-        "DamageIndicator.ts: CSS overlay с красной виньеткой",
-        "Направление: индикатор появляется со стороны, откуда пришёл урон",
-        "Интенсивность зависит от величины урона",
-        "Виньетка затухает через 0.5-1 секунду",
-        "Одновременно может показывать несколько направлений"
-      ],
-      "test_steps": [
-        "Шаг 1: Получить урон спереди — индикатор сверху экрана",
-        "Шаг 2: Получить урон сзади — индикатор снизу",
-        "Шаг 3: Хэдшот (70 dmg) — интенсивнее, чем тело (35 dmg)",
-        "Шаг 4: Индикатор затухает"
-      ],
-      "dependencies": ["TASK-019", "TASK-011"],
-      "status": "pending"
-    },
-    {
-      "id": "TASK-029",
       "category": "functional",
-      "priority": "medium",
-      "description": "Spectator mode: после смерти в 2v2 камера переключается на живого тиммейта (наблюдение от первого лица)",
-      "acceptance_criteria": [
-        "SpectatorCamera.ts: камера привязывается к позиции/ротации живого тиммейта",
-        "Переключение автоматическое при смерти",
-        "HUD показывает 'Наблюдение: [nickname]'",
-        "Спектатор не может стрелять или двигаться",
-        "Если тиммейт тоже погибает — конец раунда"
-      ],
-      "test_steps": [
-        "Шаг 1: 2v2, один игрок погибает — камера переключается на тиммейта",
-        "Шаг 2: Виден ник тиммейта на экране",
-        "Шаг 3: WASD/ЛКМ ничего не делают в режиме спектатора",
-        "Шаг 4: Новый раунд — возврат к обычному управлению"
-      ],
-      "dependencies": ["TASK-021"],
-      "status": "pending"
-    },
-    {
-      "id": "TASK-030",
-      "category": "ui",
       "priority": "high",
-      "description": "Экран конца матча: команда-победитель, финальный счёт, таблица статистики (K/D), кнопки 'Реванш' / 'В лобби'",
+      "description": "Модель SSG-08 и поведение. Low-poly снайперская модель из примитивов (длинный ствол, прицел). Bolt-action анимация: длинный цикл отдачи (1500ms fire rate). Высокая точность (низкий base spread), большой штраф при движении. Система смены оружия: клавиши 1/2/3 или скролл для переключения, прерывание перезарядки.",
       "acceptance_criteria": [
-        "MatchEnd.ts: overlay при match_end состоянии",
-        "Крупно: 'Team A/B победила!'",
-        "Финальный счёт",
-        "Таблица: все игроки с Kills/Deaths",
-        "Кнопка 'Реванш': перезапуск матча с теми же настройками",
-        "Кнопка 'В лобби': возврат в лобби комнаты"
+        "SSG-08 модель отображается от первого лица",
+        "Bolt-action анимация (медленный цикл 1500ms)",
+        "Высокая точность при стоянии, большой spread при движении",
+        "Клавиши 1/2/3 переключают оружие",
+        "Колёсико мыши циклически меняет оружие",
+        "Смена оружия прерывает перезарядку"
       ],
       "test_steps": [
-        "Шаг 1: Достичь победного счёта — появляется экран конца матча",
-        "Шаг 2: Видна команда-победитель и счёт",
-        "Шаг 3: Таблица статистики с правильными K/D",
-        "Шаг 4: 'Реванш' перезапускает матч",
-        "Шаг 5: 'В лобби' возвращает в экран лобби"
-      ],
-      "dependencies": ["TASK-021"],
-      "status": "pending"
-    },
-    {
-      "id": "TASK-031",
-      "category": "functional",
-      "priority": "medium",
-      "description": "Прототип карты Warehouse из GLTF/GLB: моделирование (или программная генерация) low-poly карты склада с коллизиями. Замена примитивов из TASK-005",
-      "acceptance_criteria": [
-        "Карта Warehouse: пол, стены, ящики, стеллажи, узкие проходы",
-        "Размер ~40x40 метров",
-        "2-3 маршрута между зонами спавна",
-        "Spawn points для Team A и Team B (без прямой видимости)",
-        "Коллизии работают с новой геометрией",
-        "< 10,000 полигонов",
-        "FPS >= 30 на интегрированной графике"
-      ],
-      "test_steps": [
-        "Шаг 1: Карта загружается и отображается",
-        "Шаг 2: Игрок может ходить по карте, коллизии работают",
-        "Шаг 3: Есть минимум 2 разных маршрута от спавна к спавну",
-        "Шаг 4: FPS стабильный (>= 30)"
-      ],
-      "dependencies": ["TASK-007"],
-      "status": "pending"
-    },
-    {
-      "id": "TASK-032",
-      "category": "functional",
-      "priority": "medium",
-      "description": "Прототип карты Dust Alley: пустынная стилистика, песочные стены, арки, узкие переулки, открытая площадь",
-      "acceptance_criteria": [
-        "Карта Dust Alley: песочные стены, арки, переулки, одна открытая площадь",
-        "Размер ~40x40 метров",
-        "2-3 маршрута, укрытия, различная высота",
-        "Spawn points для обеих команд",
-        "Коллизии работают",
-        "< 10,000 полигонов"
-      ],
-      "test_steps": [
-        "Шаг 1: Карта загружается без ошибок",
-        "Шаг 2: Визуально отличается от Warehouse",
-        "Шаг 3: Коллизии работают на всех объектах",
-        "Шаг 4: Spawn points без прямой видимости"
-      ],
-      "dependencies": ["TASK-031"],
-      "status": "pending"
-    },
-    {
-      "id": "TASK-033",
-      "category": "functional",
-      "priority": "medium",
-      "description": "Прототип карты Office: офисное здание с коридорами, комнатами, 2 этажа с лестницами",
-      "acceptance_criteria": [
-        "Карта Office: коридоры, комнаты, лестницы, 2 этажа",
-        "Размер ~40x40 метров",
-        "Вертикальность: лестницы между этажами",
-        "Spawn points на разных этажах или в разных частях",
-        "< 10,000 полигонов"
-      ],
-      "test_steps": [
-        "Шаг 1: Карта загружается, 2 этажа видны",
-        "Шаг 2: Лестницы работают (подъём/спуск)",
-        "Шаг 3: Коллизии со стенами, столами, дверными проёмами"
-      ],
-      "dependencies": ["TASK-031"],
-      "status": "pending"
-    },
-    {
-      "id": "TASK-034",
-      "category": "functional",
-      "priority": "low",
-      "description": "Прототип карты Trainyard (опционально): ж/д станция с вагонами, платформами, открытые и закрытые зоны",
-      "acceptance_criteria": [
-        "Карта Trainyard: вагоны, платформы, открытые/закрытые зоны",
-        "Размер ~40x40 метров",
-        "2-3 маршрута, использование вагонов как укрытий",
-        "< 10,000 полигонов"
-      ],
-      "test_steps": [
-        "Шаг 1: Карта загружается",
-        "Шаг 2: Можно прятаться за вагонами",
-        "Шаг 3: Коллизии со всеми объектами"
-      ],
-      "dependencies": ["TASK-031"],
-      "status": "pending"
-    },
-    {
-      "id": "TASK-035",
-      "category": "functional",
-      "priority": "medium",
-      "description": "Выбор карты: сервер загружает collision data для выбранной карты, клиент загружает соответствующий GLB. MapLoader на сервере, MapRenderer на клиенте",
-      "acceptance_criteria": [
-        "MapLoader.ts на сервере: загрузка collision volumes по mapId",
-        "MapRenderer.ts на клиенте: загрузка GLB по mapId",
-        "Настройка карты в лобби (dropdown/кнопки) отправляется на сервер",
-        "При старте игры оба (клиент и сервер) используют одну карту",
-        "Spawn points зависят от выбранной карты"
-      ],
-      "test_steps": [
-        "Шаг 1: Выбрать Warehouse в лобби → карта Warehouse загружается",
-        "Шаг 2: Выбрать Dust Alley → другая карта",
-        "Шаг 3: Коллизии на сервере соответствуют карте"
-      ],
-      "dependencies": ["TASK-031", "TASK-015"],
-      "status": "pending"
-    },
-    {
-      "id": "TASK-036",
-      "category": "functional",
-      "priority": "medium",
-      "description": "Звуковая система: AudioManager (Web Audio API), SoundBank (preload звуков), звуки выстрелов для каждого оружия",
-      "acceptance_criteria": [
-        "AudioManager.ts: AudioContext, master volume, resume on user gesture",
-        "SoundBank.ts: preload и кэширование звуковых буферов",
-        "Звук выстрела уникален для каждого оружия (Deagle, SSG-08, MP9)",
-        "Звук попадания (hit), хэдшота (dink), смерти",
-        "Звук перезарядки",
-        "Задержка воспроизведения < 50ms"
-      ],
-      "test_steps": [
-        "Шаг 1: Выстрел Deagle — звук пистолета",
-        "Шаг 2: Выстрел SSG-08 — другой звук (громче, басовитее)",
-        "Шаг 3: MP9 очередь — автоматический звук",
-        "Шаг 4: Попадание по противнику — звук хита",
-        "Шаг 5: Перезарядка — звук клацанья"
+        "Шаг 1: Нажать 2 — модель SSG-08 отображается",
+        "Шаг 2: Выстрел — bolt-action анимация, медленный fire rate",
+        "Шаг 3: Нажать 1 — переключение на Deagle с анимацией",
+        "Шаг 4: Начать перезарядку SSG-08, нажать 1 — перезарядка прервана"
       ],
       "dependencies": ["TASK-023"],
       "status": "pending"
     },
     {
-      "id": "TASK-037",
+      "id": "TASK-029",
       "category": "functional",
-      "priority": "medium",
-      "description": "3D пространственный звук: шаги и выстрелы противников с учётом расстояния и направления (PannerNode, Web Audio API)",
+      "priority": "high",
+      "description": "Модель MP9 и поведение. Low-poly SMG модель из примитивов (компактный корпус, магазин). Автоматическая стрельба: зажатие ЛКМ = непрерывная стрельба (fire rate 100ms). Нарастающий spread при стрельбе очередями. Высокий fire rate, низкий урон.",
       "acceptance_criteria": [
-        "SpatialAudio.ts: обёртка над PannerNode",
-        "AudioListener привязан к позиции/ротации камеры",
-        "Звуки шагов противников: пространственные (лево/право, громкость по расстоянию)",
-        "Выстрелы противников: пространственные",
-        "Громкость уменьшается с расстоянием (rolloff)",
-        "Свои звуки: без пространственности (2D)"
+        "MP9 модель отображается от первого лица",
+        "Зажатие ЛКМ — непрерывная автоматическая стрельба",
+        "Fire rate ~100ms (10 выстр/сек)",
+        "Spread увеличивается при длинной очереди",
+        "Spread уменьшается при паузе",
+        "Визуальная отдача при стрельбе"
       ],
       "test_steps": [
-        "Шаг 1: Противник стреляет слева — звук в левом наушнике/колонке",
-        "Шаг 2: Противник далеко — звук тише",
-        "Шаг 3: Свои выстрелы — одинаково громко с обеих сторон",
-        "Шаг 4: Повернуться на 180° — звуки меняют сторону"
+        "Шаг 1: Нажать 3 — модель MP9 отображается",
+        "Шаг 2: Зажать ЛКМ — автоматическая стрельба",
+        "Шаг 3: Длинная очередь — spread увеличивается",
+        "Шаг 4: Отпустить ЛКМ, подождать — spread уменьшается"
+      ],
+      "dependencies": ["TASK-023"],
+      "status": "pending"
+    },
+    {
+      "id": "TASK-030",
+      "category": "security",
+      "priority": "medium",
+      "description": "Серверная валидация и античит. Rate limiting: макс ~60 msg/sec per player, fire rate по оружию. Валидация инпутов: reject NaN, Infinity, отрицательный deltaTime, out-of-range значения. Валидация скорости: проверка movement delta vs PLAYER_SPEED × dt + tolerance. Логирование подозрительной активности.",
+      "acceptance_criteria": [
+        "Rate limiter отклоняет >60 сообщений/сек от одного игрока",
+        "Fire rate enforcement: нельзя стрелять быстрее конфига оружия",
+        "Инпуты с NaN/Infinity/отрицательным deltaTime отклоняются",
+        "Speed hack detection: позиция не может измениться быстрее PLAYER_SPEED",
+        "Подозрительная активность логируется"
+      ],
+      "test_steps": [
+        "Шаг 1: Отправить 100 move сообщений за секунду — лишние отклонены",
+        "Шаг 2: Отправить shoot быстрее fire rate — лишние отклонены",
+        "Шаг 3: Отправить move с deltaTime=-1 — отклонено",
+        "Шаг 4: Логи сервера содержат записи о подозрительной активности"
+      ],
+      "dependencies": ["TASK-024"],
+      "status": "pending"
+    },
+    {
+      "id": "TASK-031",
+      "category": "ui",
+      "priority": "medium",
+      "description": "Kill Feed UI: лента убийств. Справа сверху, последние 5 событий. Формат: «killerName [оружие] victimName» с индикатором хэдшота. Fade-out через 5 секунд. Данные из killFeed ArraySchema через Colyseus state sync.",
+      "acceptance_criteria": [
+        "Kill feed отображается справа сверху",
+        "Показывает последние 5 убийств",
+        "Формат: имя убийцы, иконка/текст оружия, имя жертвы",
+        "Хэдшот выделен (цветом или иконкой)",
+        "Каждая запись исчезает через 5 секунд (fade-out)"
+      ],
+      "test_steps": [
+        "Шаг 1: Убить противника → запись в kill feed",
+        "Шаг 2: Хэдшот → запись с индикатором хэдшота",
+        "Шаг 3: Подождать 5 секунд → запись исчезает",
+        "Шаг 4: 6+ убийств — только последние 5 видны"
+      ],
+      "dependencies": ["TASK-018", "TASK-024"],
+      "status": "pending"
+    },
+    {
+      "id": "TASK-032",
+      "category": "ui",
+      "priority": "medium",
+      "description": "Scoreboard UI: таблица при зажатом Tab. Видна при зажатии Tab, по центру. Два столбца команд, строки игроков: никнейм, kills, deaths, ping. Тёмная тема PRD.",
+      "acceptance_criteria": [
+        "Scoreboard появляется при зажатии Tab",
+        "Scoreboard исчезает при отпускании Tab",
+        "Два столбца: Team A и Team B",
+        "Каждый игрок: никнейм, kills, deaths",
+        "Данные обновляются в реальном времени"
+      ],
+      "test_steps": [
+        "Шаг 1: Зажать Tab в игре → scoreboard видим",
+        "Шаг 2: Отпустить Tab → scoreboard исчезает",
+        "Шаг 3: Убить противника → kills обновлены на scoreboard",
+        "Шаг 4: Данные корректны для обеих команд"
+      ],
+      "dependencies": ["TASK-018"],
+      "status": "pending"
+    },
+    {
+      "id": "TASK-033",
+      "category": "ui",
+      "priority": "medium",
+      "description": "Индикатор урона и хитмаркер. Индикатор урона: красная виньетка при получении урона, направление к атакующему, интенсивность зависит от урона. Хитмаркер: вспышка крестика при попадании (белый — тело, красный — хэдшот), fade ~200ms. Триггер: серверные hit события.",
+      "acceptance_criteria": [
+        "При получении урона — красная виньетка по краям экрана",
+        "Виньетка указывает направление атакующего",
+        "Интенсивность виньетки зависит от полученного урона",
+        "При нанесении урона — хитмаркер по центру",
+        "Белый хитмаркер — тело, красный — хэдшот",
+        "Хитмаркер fade-out ~200ms"
+      ],
+      "test_steps": [
+        "Шаг 1: Получить урон → красная виньетка с направлением",
+        "Шаг 2: Попасть в противника → белый хитмаркер",
+        "Шаг 3: Попасть в голову → красный хитмаркер",
+        "Шаг 4: Хитмаркер исчезает через ~200ms"
+      ],
+      "dependencies": ["TASK-018", "TASK-024"],
+      "status": "pending"
+    },
+    {
+      "id": "TASK-034",
+      "category": "functional",
+      "priority": "medium",
+      "description": "Spectator mode для 2v2. При смерти игрока в 2v2: камера следует за живым тиммейтом. Плавная интерполяция к позиции/ротации тиммейта. Надпись «Наблюдение: [nickname]» на экране. Отключение отправки инпутов во время спектатора.",
+      "acceptance_criteria": [
+        "При смерти в 2v2 камера переключается на живого тиммейта",
+        "Камера плавно интерполирует к позиции тиммейта",
+        "Надпись «Наблюдение: [nickname]» видна на экране",
+        "Инпуты не отправляются во время спектатора",
+        "При смерти тиммейта — конец раунда"
+      ],
+      "test_steps": [
+        "Шаг 1: 2v2, один игрок умирает → камера переключается на тиммейта",
+        "Шаг 2: Надпись «Наблюдение» видна",
+        "Шаг 3: WASD/мышь не двигают тиммейта",
+        "Шаг 4: Тиммейт двигается → камера следует за ним"
+      ],
+      "dependencies": ["TASK-026", "TASK-022"],
+      "status": "pending"
+    },
+    {
+      "id": "TASK-035",
+      "category": "ui",
+      "priority": "medium",
+      "description": "Экран конца матча. Команда-победитель, финальный счёт. Таблица K/D всех игроков. Кнопки «Реванш» (возврат в лобби) и «Выйти». Триггер: matchEnd событие или status === match_end.",
+      "acceptance_criteria": [
+        "Экран появляется при match_end",
+        "Отображается команда-победитель и финальный счёт",
+        "Таблица K/D всех игроков",
+        "Кнопка «Реванш» возвращает в лобби",
+        "Кнопка «Выйти» возвращает в главное меню"
+      ],
+      "test_steps": [
+        "Шаг 1: Завершить матч (одна команда набрала roundsToWin)",
+        "Шаг 2: Экран конца матча с правильным победителем и счётом",
+        "Шаг 3: K/D таблица корректна",
+        "Шаг 4: «Реванш» → возврат в лобби с теми же игроками"
+      ],
+      "dependencies": ["TASK-026"],
+      "status": "pending"
+    },
+    {
+      "id": "TASK-036",
+      "category": "infrastructure",
+      "priority": "medium",
+      "description": "MapLoader и MapRenderer: система загрузки карт. Клиент MapLoader: загрузка GLTF/GLB через GLTFLoader, извлечение коллизий по naming convention (_collision). MapRenderer: добавление загруженной сцены, построение CollisionWorld из collision meshes. Сервер MapSystem: загрузка данных коллизий из JSON-конфига. Рефакторинг текущего buildWarehouseMap() под эту систему.",
+      "acceptance_criteria": [
+        "MapLoader загружает GLTF/GLB файлы",
+        "Collision meshes извлекаются из модели по naming convention",
+        "CollisionWorld строится из collision meshes",
+        "Сервер загружает упрощённые коллизии из JSON",
+        "buildWarehouseMap() работает через новую систему (или как fallback)",
+        "Карта выбирается по GameState.settings.mapId"
+      ],
+      "test_steps": [
+        "Шаг 1: Загрузить текущую Warehouse карту через новую систему",
+        "Шаг 2: Коллизии работают (игрок не проходит сквозь стены)",
+        "Шаг 3: Сервер имеет коллизии для выбранной карты",
+        "Шаг 4: Смена mapId в настройках → загрузка другой карты (или fallback)"
+      ],
+      "dependencies": ["TASK-026"],
+      "status": "pending"
+    },
+    {
+      "id": "TASK-037",
+      "category": "functional",
+      "priority": "low",
+      "description": "Warehouse GLTF карта (замена примитивов). Замена BoxGeometry примитивов на GLTF модель. Low-poly (<10k полигонов), совпадающая с текущей раскладкой. Collision geometry как отдельные упрощённые меши. Spawn points из shared/constants/maps.ts.",
+      "acceptance_criteria": [
+        "Warehouse загружается как GLTF модель",
+        "Визуально соответствует текущей раскладке",
+        "Менее 10k полигонов",
+        "Коллизии работают корректно",
+        "Spawn points на своих местах"
+      ],
+      "test_steps": [
+        "Шаг 1: Загрузить Warehouse — визуально корректна",
+        "Шаг 2: Ходить по карте — коллизии работают",
+        "Шаг 3: FPS >= 30 на интегрированной графике",
+        "Шаг 4: Spawn points на правильных позициях"
       ],
       "dependencies": ["TASK-036"],
       "status": "pending"
@@ -834,274 +634,232 @@
     {
       "id": "TASK-038",
       "category": "functional",
-      "priority": "medium",
-      "description": "Звуки UI и шагов: звук нажатий кнопок, начала/конца раунда, шаги игрока при движении",
+      "priority": "low",
+      "description": "Dust Alley GLTF карта. Пустынная тематика: песочные стены, арки, узкие переулки, одна открытая площадь. 2-3 маршрута между зонами спавна, асимметричная раскладка. Low-poly, collision geometry, spawn points.",
       "acceptance_criteria": [
-        "Шаги: звук при ходьбе (чередование 2-3 вариантов), тишина при стоянии",
-        "Начало раунда: звуковой сигнал",
-        "Конец раунда: звуковой сигнал",
-        "UI: клик по кнопкам — лёгкий звук",
-        "Громкость настраиваемая (мастер + эффекты + шаги)"
+        "Карта Dust Alley загружается через MapLoader",
+        "Пустынная тематика визуально",
+        "2-3 маршрута между спавнами",
+        "Менее 10k полигонов",
+        "Коллизии и spawn points работают"
       ],
       "test_steps": [
-        "Шаг 1: Ходить WASD — слышны шаги",
-        "Шаг 2: Стоять — тишина (нет шагов)",
-        "Шаг 3: Начало раунда — звуковой сигнал",
-        "Шаг 4: Нажать кнопку в меню — звук клика"
+        "Шаг 1: Выбрать Dust Alley в настройках лобби",
+        "Шаг 2: Карта загружается и отображается",
+        "Шаг 3: Ходить по карте — коллизии работают",
+        "Шаг 4: Spawn points — игроки не видят друг друга при спавне"
       ],
       "dependencies": ["TASK-036"],
       "status": "pending"
     },
     {
       "id": "TASK-039",
-      "category": "ui",
-      "priority": "medium",
-      "description": "Настройки прицела: UI для настройки crosshair (цвет, размер, толщина, gap, точка, контур). Сохранение в localStorage",
+      "category": "functional",
+      "priority": "low",
+      "description": "Office GLTF карта. Два этажа с лестницами, коридоры, комнаты. Вертикальный геймплей. Low-poly, collision geometry, spawn points.",
       "acceptance_criteria": [
-        "Модальное окно настроек прицела (доступно из меню/Esc)",
-        "Цвет: предустановки (зелёный, красный, белый, жёлтый) + HEX input",
-        "Размер: маленький/средний/большой (или слайдер)",
-        "Толщина линий: слайдер",
-        "Gap: слайдер",
-        "Точка в центре: toggle",
-        "Контур (outline): toggle",
-        "Preview прицела при настройке",
-        "Сохранение в localStorage, восстановление при загрузке"
+        "Карта Office загружается через MapLoader",
+        "Два этажа с лестницами",
+        "Коридоры и комнаты",
+        "Менее 10k полигонов",
+        "Коллизии и spawn points работают"
       ],
       "test_steps": [
-        "Шаг 1: Открыть настройки — видна текущая конфигурация прицела",
-        "Шаг 2: Изменить цвет на красный — прицел меняется в реальном времени",
-        "Шаг 3: Изменить размер — прицел меняет размер",
-        "Шаг 4: Закрыть и открыть игру заново — настройки сохранены"
+        "Шаг 1: Выбрать Office в настройках лобби",
+        "Шаг 2: Карта загружается и отображается",
+        "Шаг 3: Подняться по лестнице на второй этаж",
+        "Шаг 4: Коллизии корректны на обоих этажах"
       ],
-      "dependencies": ["TASK-011"],
+      "dependencies": ["TASK-036"],
       "status": "pending"
     },
     {
       "id": "TASK-040",
       "category": "functional",
       "priority": "medium",
-      "description": "Модели игроков: 3D-представление других игроков (low-poly humanoid или капсула с индикацией команды). Анимация ходьбы",
+      "description": "Модели игроков: low-poly humanoid. Замена капсул на low-poly гуманоидные фигуры из примитивов (box торс, cylinder конечности, sphere голова). Цвет по команде: синий (Team A), красный (Team B). Простая анимация ходьбы (раскачивание ног по скорости). Оружие в руке.",
       "acceptance_criteria": [
-        "Удалённые игроки отображаются как 3D-модели (не просто боксы)",
-        "Цвет/маркер команды (Team A — синий, Team B — красный)",
-        "Базовая анимация ходьбы (покачивание или legs animation)",
-        "Модель оружия видна у других игроков (текущее выбранное)",
-        "Хитбокс визуально соответствует модели"
+        "Удалённые игроки отображаются как гуманоиды",
+        "Цвет зависит от команды (синий/красный)",
+        "Анимация ходьбы при движении",
+        "Оружие видно в руке",
+        "Голова отдельно от тела (для визуала хэдшотов)"
       ],
       "test_steps": [
-        "Шаг 1: Видны другие игроки как humanoid модели",
-        "Шаг 2: Команды визуально различимы",
-        "Шаг 3: При движении — анимация ходьбы",
-        "Шаг 4: Видно оружие у другого игрока"
+        "Шаг 1: Два игрока в комнате → гуманоидные модели вместо капсул",
+        "Шаг 2: Игроки в разных командах → разные цвета",
+        "Шаг 3: Движение → анимация ходьбы",
+        "Шаг 4: Оружие видно в руке модели"
+      ],
+      "dependencies": ["TASK-020"],
+      "status": "pending"
+    },
+    {
+      "id": "TASK-041",
+      "category": "functional",
+      "priority": "medium",
+      "description": "Аудио система: AudioManager и SoundBank. Web Audio API AudioContext (resume по жесту). SoundBank: предзагрузка OGG/MP3, кэш AudioBuffer. 2D звуки: свои выстрелы, перезарядка, UI клики, хит/смерть. Категории: master, effects, footsteps с независимой громкостью.",
+      "acceptance_criteria": [
+        "AudioContext создаётся и resume-ится по первому клику",
+        "SoundBank загружает аудиофайлы",
+        "Звук выстрела при стрельбе",
+        "Звук перезарядки",
+        "Звук попадания/смерти",
+        "Громкость регулируется по категориям"
+      ],
+      "test_steps": [
+        "Шаг 1: Кликнуть на страницу → AudioContext active",
+        "Шаг 2: Стрелять → звук выстрела",
+        "Шаг 3: Перезарядка → звук перезарядки",
+        "Шаг 4: Изменить master volume → все звуки тише"
+      ],
+      "dependencies": ["TASK-014"],
+      "status": "pending"
+    },
+    {
+      "id": "TASK-042",
+      "category": "functional",
+      "priority": "low",
+      "description": "Пространственный звук для удалённых игроков. PannerNode для 3D позиционированных звуков (шаги и выстрелы врагов). AudioListener привязан к камере. Дистанционный rolloff. Триггер: серверные sound события или наблюдение за стейтом удалённых игроков.",
+      "acceptance_criteria": [
+        "Выстрелы других игроков слышны с 3D позиционированием",
+        "Шаги других игроков слышны пространственно",
+        "AudioListener привязан к позиции/ротации камеры",
+        "Звук тише с расстоянием (rolloff)",
+        "Звук корректно панорамирован (лево/право)"
+      ],
+      "test_steps": [
+        "Шаг 1: Два игрока, один стреляет — второй слышит звук с правильной стороны",
+        "Шаг 2: Повернуться лицом к источнику → звук по центру",
+        "Шаг 3: Повернуться спиной → звук сзади",
+        "Шаг 4: Далёкий звук тише, близкий — громче"
+      ],
+      "dependencies": ["TASK-041", "TASK-022"],
+      "status": "pending"
+    },
+    {
+      "id": "TASK-043",
+      "category": "ui",
+      "priority": "low",
+      "description": "Настройки прицела. Цвет: предустановки (зелёный, красный, белый, жёлтый) + HEX ввод. Слайдеры: размер, толщина, gap. Тоглы: точка в центре, контур. Предпросмотр. Сохранение в localStorage.",
+      "acceptance_criteria": [
+        "UI настроек прицела открывается из меню",
+        "Цвет меняется (предустановки + HEX)",
+        "Размер, толщина, gap регулируются слайдерами",
+        "Точка и контур переключаются тоглами",
+        "Предпросмотр обновляется в реальном времени",
+        "Настройки сохраняются в localStorage и восстанавливаются"
+      ],
+      "test_steps": [
+        "Шаг 1: Открыть настройки прицела",
+        "Шаг 2: Изменить цвет на красный → прицел красный",
+        "Шаг 3: Увеличить размер → прицел больше",
+        "Шаг 4: Перезагрузить страницу → настройки сохранены"
       ],
       "dependencies": ["TASK-018"],
       "status": "pending"
     },
     {
-      "id": "TASK-041",
-      "category": "security",
-      "priority": "medium",
-      "description": "Валидация входных данных на сервере: санитизация никнеймов (базовый фильтр), валидация всех message типов, защита от спама",
-      "acceptance_criteria": [
-        "Никнеймы: фильтрация (базовый список запрещённых слов)",
-        "Все входные сообщения валидируются по типу и диапазону",
-        "NaN, Infinity, отрицательные deltaTime отклоняются",
-        "Неизвестные типы сообщений игнорируются",
-        "Throttling по IP/session: лимит сообщений в секунду",
-        "Таймаут неактивных соединений (5 минут)"
-      ],
-      "test_steps": [
-        "Шаг 1: Никнейм с запрещённым словом — отклоняется",
-        "Шаг 2: Отправка { damage: 9999 } напрямую — игнорируется",
-        "Шаг 3: Спам 1000 msg/sec — throttle, не крашит сервер"
-      ],
-      "dependencies": ["TASK-024"],
-      "status": "pending"
-    },
-    {
-      "id": "TASK-042",
-      "category": "security",
-      "priority": "medium",
-      "description": "Автоуничтожение комнат: комната уничтожается если все покинули, код комнаты истекает через 10 минут без активности",
-      "acceptance_criteria": [
-        "Комната уничтожается автоматически, когда все игроки отключились",
-        "Таймер неактивности: если в комнате никого 10 минут — уничтожение",
-        "Освобождение ресурсов при уничтожении (таймеры, интервалы)"
-      ],
-      "test_steps": [
-        "Шаг 1: Создать комнату, отключиться — комната уничтожена (проверить логи)",
-        "Шаг 2: Создать комнату, не подключаться 10 минут — комната уничтожена"
-      ],
-      "dependencies": ["TASK-013"],
-      "status": "pending"
-    },
-    {
-      "id": "TASK-043",
-      "category": "functional",
-      "priority": "medium",
-      "description": "Обработка дисконнекта: при отключении игрока во время матча — его персонаж погибает. В лобби — слот освобождается. Reconnection grace period",
-      "acceptance_criteria": [
-        "Отключение в лобби: слот игрока освобождается мгновенно",
-        "Отключение во время матча: игрок считается мёртвым",
-        "Если оба игрока одной команды отключились — раунд заканчивается",
-        "Уведомление другим игрокам: '[Nickname] отключился'"
-      ],
-      "test_steps": [
-        "Шаг 1: Закрыть вкладку в лобби — слот освободился",
-        "Шаг 2: Закрыть вкладку во время раунда — игрок погиб, раунд продолжается (если 2v2)",
-        "Шаг 3: Оба в одной команде отключились — раунд за противников"
-      ],
-      "dependencies": ["TASK-021"],
-      "status": "pending"
-    },
-    {
       "id": "TASK-044",
-      "category": "functional",
-      "priority": "medium",
-      "description": "Визуальные эффекты попаданий: hitmarker при попадании, отличие headshot hitmarker, эффект смерти (ragdoll или fade-out)",
+      "category": "ui",
+      "priority": "low",
+      "description": "Настройки звука UI. Слайдеры: master volume, effects, footsteps. Мьют toggle. Сохранение в localStorage.",
       "acceptance_criteria": [
-        "Hitmarker: крестик по центру при попадании (подтверждение с сервера)",
-        "Headshot hitmarker: отличается (красный или другой звук/визуал)",
-        "Эффект смерти: модель игрока падает или затухает",
-        "Hitmarker исчезает через 0.3-0.5 сек"
+        "UI настроек звука с тремя слайдерами",
+        "Мьют toggle работает",
+        "Настройки применяются в реальном времени",
+        "Сохранение в localStorage"
       ],
       "test_steps": [
-        "Шаг 1: Попасть в тело — белый hitmarker",
-        "Шаг 2: Попасть в голову — красный hitmarker",
-        "Шаг 3: Убить — эффект смерти виден"
+        "Шаг 1: Открыть настройки звука",
+        "Шаг 2: Уменьшить master volume → всё тише",
+        "Шаг 3: Мьют → тишина. Размьют → звук возвращается",
+        "Шаг 4: Перезагрузить — настройки сохранены"
       ],
-      "dependencies": ["TASK-019", "TASK-011"],
+      "dependencies": ["TASK-041"],
       "status": "pending"
     },
     {
       "id": "TASK-045",
       "category": "infrastructure",
       "priority": "low",
-      "description": "Оптимизация производительности: object pooling для эффектов, frustum culling проверки, quality settings (разрешение рендеринга)",
+      "description": "Object pooling и оптимизация производительности. Generic object pool для часто создаваемых/уничтожаемых объектов. Пул для tracers, decals, muzzle flash. Quality settings: разрешение теней, дальность рендера, количество частиц. FPS мониторинг.",
       "acceptance_criteria": [
-        "Object pooling для bullet tracers, muzzle flashes, impact effects",
-        "Quality settings: low/medium/high (разрешение рендеринга, дальность прорисовки)",
-        "FPS counter в debug overlay",
-        "На low quality: целевой >= 30 FPS на интегрированной графике",
-        "Настройки сохраняются в localStorage"
+        "ObjectPool переиспользует объекты вместо создания новых",
+        "Tracers, decals, muzzle flash используют пул",
+        "Quality settings доступны (низкое/среднее/высокое)",
+        "FPS стабильный при интенсивной стрельбе (нет GC spikes)"
       ],
       "test_steps": [
-        "Шаг 1: FPS counter показывает стабильные 60 FPS на дискретной графике",
-        "Шаг 2: Переключить на low quality — разрешение снижается, FPS растёт",
-        "Шаг 3: 100 выстрелов подряд — нет утечки памяти (проверить в devtools)"
+        "Шаг 1: Стрелять очередью MP9 — нет просадки FPS",
+        "Шаг 2: Переключить quality на low → улучшение FPS",
+        "Шаг 3: Множество decals на стене — нет деградации",
+        "Шаг 4: Performance tab: нет частых GC пиков"
       ],
-      "dependencies": ["TASK-031", "TASK-023"],
+      "dependencies": ["TASK-019"],
       "status": "pending"
     },
     {
       "id": "TASK-046",
-      "category": "infrastructure",
+      "category": "ui",
       "priority": "low",
-      "description": "Debug overlay: FPS counter, ping display, network stats (packet loss, tick rate), player position. Включается по ~ или F3",
+      "description": "Debug overlay. Переключение по клавише ` (backtick). Отображение: FPS, ping (RTT), позиция игрока, серверный тик, количество сущностей. Полупрозрачный overlay, верхний левый угол.",
       "acceptance_criteria": [
-        "FPS counter (обновляется каждую секунду)",
-        "Ping (RTT) в миллисекундах",
-        "Tick rate / packets per second",
-        "Позиция игрока (x, y, z)",
-        "Toggle по клавише (~) или F3",
-        "Не влияет на производительность когда выключен"
+        "Backtick показывает/скрывает debug overlay",
+        "FPS отображается и обновляется каждую секунду",
+        "Ping (RTT) отображается",
+        "Позиция игрока (x, y, z) показана",
+        "Overlay полупрозрачный, не мешает игре"
       ],
       "test_steps": [
-        "Шаг 1: F3 — debug overlay появляется",
-        "Шаг 2: FPS показывается и обновляется",
-        "Шаг 3: Ping отображается",
-        "Шаг 4: F3 ещё раз — overlay скрывается"
+        "Шаг 1: Нажать ` → overlay появился",
+        "Шаг 2: FPS обновляется, значение реалистичное",
+        "Шаг 3: Двигаться → позиция меняется",
+        "Шаг 4: Нажать ` → overlay скрылся"
       ],
-      "dependencies": ["TASK-017"],
+      "dependencies": ["TASK-020"],
       "status": "pending"
     },
     {
       "id": "TASK-047",
-      "category": "infrastructure",
+      "category": "functional",
       "priority": "medium",
-      "description": "Деплой конфигурация: Dockerfile для сервера (Railway/Render), netlify.toml для клиента, .env конфигурация серверного URL",
+      "description": "Обработка дисконнектов. В лобби: слот освобождается мгновенно. В игре: игрок считается мёртвым (isAlive=false). 2v2: оба из одной команды отключились → раунд за противников. Уведомление «[Nickname] отключился». Авто-уничтожение комнаты при пустоте. Таймаут неактивности 10 минут.",
       "acceptance_criteria": [
-        "Dockerfile для packages/server: multi-stage build, production ready",
-        "netlify.toml в packages/client: build command, publish directory",
-        ".env.example с VITE_SERVER_URL",
-        "npm run build в обоих пакетах — работает",
-        "Клиент использует VITE_SERVER_URL для подключения к серверу"
+        "Отключение в лобби — слот освобождён, другие видят",
+        "Отключение в игре — игрок мёртв, уведомление показано",
+        "2v2: оба тиммейта ушли → раунд за противников",
+        "Пустая комната уничтожается",
+        "10 минут без активности → комната уничтожается"
       ],
       "test_steps": [
-        "Шаг 1: docker build в packages/server — образ собирается",
-        "Шаг 2: npm run build в packages/client — dist создаётся",
-        "Шаг 3: .env.production с production URL — клиент подключается к удалённому серверу"
+        "Шаг 1: Отключиться в лобби → слот освободился",
+        "Шаг 2: Отключиться в игре → «[Nick] отключился», isAlive=false",
+        "Шаг 3: 2v2: оба игрока Team A ушли → раунд за Team B",
+        "Шаг 4: Все покинули → комната удалена (проверить сервер логи)"
       ],
-      "dependencies": ["TASK-004", "TASK-003"],
+      "dependencies": ["TASK-026"],
       "status": "pending"
     },
     {
       "id": "TASK-048",
-      "category": "ui",
-      "priority": "low",
-      "description": "Настройки звука: модальное окно с ползунками (мастер, эффекты, шаги). Кнопка mute. Сохранение в localStorage",
+      "category": "infrastructure",
+      "priority": "medium",
+      "description": "Конфигурация деплоя. Dockerfile для сервера: multi-stage build, install deps, build shared + server, run с tsx. netlify.toml для клиента: build command, publish directory, SPA redirects. .env для production URLs. CORS для production домена. Health check endpoint.",
       "acceptance_criteria": [
-        "Модальное окно (из Esc-меню)",
-        "Master volume: ползунок 0-100%",
-        "Effects volume: ползунок (выстрелы, попадания)",
-        "Footsteps volume: ползунок",
-        "Mute all: toggle",
-        "Сохранение в localStorage"
+        "Dockerfile собирает и запускает сервер",
+        "netlify.toml конфигурирует клиент для деплоя",
+        "Production .env с WSS URL",
+        "CORS разрешает Netlify домен + localhost:5173",
+        "Health check endpoint на сервере отвечает 200"
       ],
       "test_steps": [
-        "Шаг 1: Открыть настройки — ползунки отображаются",
-        "Шаг 2: Уменьшить Master — все звуки тише",
-        "Шаг 3: Mute — полная тишина",
-        "Шаг 4: Перезагрузить — настройки сохранены"
+        "Шаг 1: docker build -t browserstrike-server . → успешная сборка",
+        "Шаг 2: docker run → сервер запускается на порту 2567",
+        "Шаг 3: npm run build в packages/client → dist готов для деплоя",
+        "Шаг 4: curl health endpoint → 200 OK"
       ],
-      "dependencies": ["TASK-036", "TASK-039"],
-      "status": "pending"
-    },
-    {
-      "id": "TASK-049",
-      "category": "functional",
-      "priority": "low",
-      "description": "EventBus: типизированная шина событий для декаплинга модулей (audio подписывается на game events, не импортирует combat напрямую)",
-      "acceptance_criteria": [
-        "EventBus.ts: typed pub/sub с on/off/emit",
-        "Типизированные события: 'player:hit', 'player:kill', 'round:start', 'round:end', etc.",
-        "Audio подписывается на события через EventBus",
-        "UI подписывается на события через EventBus",
-        "Нет прямых зависимостей между audio и gameplay модулями"
-      ],
-      "test_steps": [
-        "Шаг 1: Выстрел порождает событие 'weapon:fire' → audio проигрывает звук",
-        "Шаг 2: Попадание порождает 'player:hit' → UI показывает hitmarker + audio играет звук хита",
-        "Шаг 3: Удаление подписки — событие больше не обрабатывается"
-      ],
-      "dependencies": ["TASK-003"],
-      "status": "pending"
-    },
-    {
-      "id": "TASK-050",
-      "category": "integration",
-      "priority": "high",
-      "description": "End-to-end интеграционный тест: полный матч 1v1 — от главного экрана до конца матча. Все системы работают вместе",
-      "acceptance_criteria": [
-        "Игрок A создаёт комнату, Игрок B присоединяется по коду",
-        "Оба выбирают команды, A начинает игру",
-        "Выбор оружия → countdown → раунд",
-        "Стрельба, попадания, урон, смерть — всё синхронизировано",
-        "Счёт обновляется, новые раунды начинаются",
-        "Матч заканчивается при достижении победного счёта",
-        "Экран результатов отображается обоим"
-      ],
-      "test_steps": [
-        "Шаг 1: Открыть 2 вкладки браузера",
-        "Шаг 2: Игрок A: ввести ник, создать комнату",
-        "Шаг 3: Игрок B: ввести ник, ввести код, подключиться",
-        "Шаг 4: Выбрать команды, начать игру",
-        "Шаг 5: Сыграть полный матч (5 раундов)",
-        "Шаг 6: Проверить экран результатов",
-        "Шаг 7: Нажать 'Реванш' — новый матч начинается"
-      ],
-      "dependencies": ["TASK-021", "TASK-023", "TASK-030"],
+      "dependencies": [],
       "status": "pending"
     }
   ]
