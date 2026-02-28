@@ -16,6 +16,9 @@ export class InputManager {
   /** Whether the primary mouse button (LMB) is currently held */
   mouseDown = false;
 
+  /** Whether the R key was pressed this frame (consumed after read) */
+  reloadPressed = false;
+
   /** Accumulated mouse movement since last consumeMouseDelta() call */
   private _mouseDeltaX = 0;
   private _mouseDeltaY = 0;
@@ -43,7 +46,15 @@ export class InputManager {
       case 'KeyS': this.keys.s = pressed; break;
       case 'KeyD': this.keys.d = pressed; break;
       case 'Space': this.keys.space = pressed; break;
+      case 'KeyR': if (pressed) this.reloadPressed = true; break;
     }
+  }
+
+  /** Consume and reset the reload key press flag. */
+  consumeReload(): boolean {
+    const v = this.reloadPressed;
+    this.reloadPressed = false;
+    return v;
   }
 
   private onMouseMove = (e: MouseEvent): void => {

@@ -18,8 +18,8 @@ interface Tracer {
  * - Raycasts from camera on fire
  * - Applies weapon spread (base + moving + sustained)
  * - Visual effects: muzzle flash, tracer lines, wall decals
- * - Optimistic ammo tracking
- * - Sends ShootMessage to server
+ * - Optimistic ammo tracking with reload state machine
+ * - Sends ShootMessage / ReloadMessage to server
  */
 export class ShootingSystem {
   private readonly raycaster = new THREE.Raycaster();
@@ -51,6 +51,11 @@ export class ShootingSystem {
   private ammo: number;
   private readonly magazineSize: number;
 
+  // Reload state
+  private _isReloading = false;
+  private reloadTimer = 0;
+  private readonly reloadTime: number; // seconds
+
   // Spread tracking
   private consecutiveShots = 0;
   private lastShotTime = 0;
@@ -59,8 +64,9 @@ export class ShootingSystem {
   // Current weapon
   private readonly weaponId: WeaponId;
 
-  // Callback to send shoot message to server
+  // Callbacks to send messages to server
   private sendShoot: ((msg: ShootMessage) => void) | null = null;
+  private sendReload: (() => void) | null = null;
   private seq = 0;
 
   constructor(scene: THREE.Scene, weaponId: WeaponId = 'deagle') {
@@ -70,6 +76,7 @@ export class ShootingSystem {
     const config = WEAPONS[this.weaponId];
     this.ammo = config.magazine;
     this.magazineSize = config.magazine;
+    this.reloadTime = config.reloadTime / 1000; // convert ms to seconds
 
     // Raycaster range
     this.raycaster.far = config.range;
@@ -83,6 +90,47 @@ export class ShootingSystem {
     this.sendShoot = cb;
   }
 
+  setReloadCallback(cb: () => void): void {
+    this.sendReload = cb;
+  }
+
+  /** Start a reload if not already reloading and magazine is not full. */
+  startReload(): boolean {
+    if (this._isReloading) return false;
+    if (this.ammo >= this.magazineSize) return false;
+
+    this._isReloading = true;
+    this.reloadTimer = this.reloadTime;
+
+    // Notify server
+    this.sendReload?.();
+
+    return true;
+  }
+
+  /** Cancel an in-progress reload (e.g. on weapon switch). */
+  cancelReload(): void {
+    this._isReloading = false;
+    this.reloadTimer = 0;
+  }
+
+  /** Complete the reload — refill magazine. */
+  private completeReload(): void {
+    this._isReloading = false;
+    this.reloadTimer = 0;
+    this.ammo = this.magazineSize;
+  }
+
+  /** Sync ammo from server state (authoritative override). */
+  syncAmmo(serverAmmo: number, serverIsReloading: boolean): void {
+    this.ammo = serverAmmo;
+    // If server says we're not reloading but client thinks we are, trust server
+    if (!serverIsReloading && this._isReloading) {
+      this._isReloading = false;
+      this.reloadTimer = 0;
+    }
+  }
+
   /**
    * Called when WeaponModel.tryFire() returns true.
    * Performs raycast, creates effects, sends network message.
@@ -94,6 +142,7 @@ export class ShootingSystem {
     pitch: number,
     isMoving: boolean,
   ): boolean {
+    if (this._isReloading) return false;
     if (this.ammo <= 0) return false;
 
     this.ammo--;
@@ -219,7 +268,7 @@ export class ShootingSystem {
     this.decalIndex = (this.decalIndex + 1) % MAX_DECALS;
   }
 
-  /** Update per frame — fade tracers, muzzle flash. */
+  /** Update per frame — fade tracers, muzzle flash, reload timer. */
   update(dt: number): void {
     // Muzzle flash fade
     if (this.muzzleFlashTimer > 0) {
@@ -227,6 +276,19 @@ export class ShootingSystem {
       if (this.muzzleFlashTimer <= 0) {
         this.muzzleLight.intensity = 0;
       }
+    }
+
+    // Reload timer
+    if (this._isReloading) {
+      this.reloadTimer -= dt;
+      if (this.reloadTimer <= 0) {
+        this.completeReload();
+      }
+    }
+
+    // Auto-reload when magazine is empty and not already reloading
+    if (this.ammo <= 0 && !this._isReloading) {
+      this.startReload();
     }
 
     // Tracer fade + cleanup
@@ -251,6 +313,16 @@ export class ShootingSystem {
 
   getMagazineSize(): number {
     return this.magazineSize;
+  }
+
+  getIsReloading(): boolean {
+    return this._isReloading;
+  }
+
+  /** Returns reload progress 0..1 (0 = just started, 1 = complete). */
+  getReloadProgress(): number {
+    if (!this._isReloading) return 0;
+    return 1 - this.reloadTimer / this.reloadTime;
   }
 
   getWeaponId(): WeaponId {

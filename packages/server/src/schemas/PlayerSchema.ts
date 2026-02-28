@@ -38,4 +38,5 @@ export class PlayerSchema extends Schema {
   // Server-only state (not replicated via @type)
   velocityY: number = 0;
   isGrounded: boolean = true;
+  lastShootTime: number = 0;
 }

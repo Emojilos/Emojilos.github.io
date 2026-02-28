@@ -325,7 +325,7 @@
         "Шаг 4: HUD показывает актуальное количество патронов"
       ],
       "dependencies": ["TASK-019", "TASK-018"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-024",

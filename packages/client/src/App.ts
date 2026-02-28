@@ -234,10 +234,13 @@ export class App {
 
     this.weaponModel = new WeaponModel(window.innerWidth / window.innerHeight);
 
-    // Shooting system — raycasting, spread, visual effects, ammo tracking
+    // Shooting system — raycasting, spread, visual effects, ammo tracking, reload
     this.shootingSystem = new ShootingSystem(this.sceneManager.scene);
     this.shootingSystem.setSendCallback((msg: ShootMessage) => {
       this.network.send('shoot', msg);
+    });
+    this.shootingSystem.setReloadCallback(() => {
+      this.network.send('reload', {});
     });
 
     // Game HUD — crosshair, HP, ammo, score, timer
@@ -393,6 +396,18 @@ export class App {
     return state.scoreB ?? 0;
   }
 
+  /** Sync ammo and reload state from server (authoritative). */
+  private syncAmmoFromServer(): void {
+    if (!this.shootingSystem || !this.network.connected) return;
+    const room = this.network.currentRoom;
+    if (!room) return;
+    const state = room.state as { players?: Map<string, { ammo?: number; isReloading?: boolean }> };
+    const local = state.players?.get(this.network.sessionId);
+    if (local && local.ammo !== undefined) {
+      this.shootingSystem.syncAmmo(local.ammo, local.isReloading ?? false);
+    }
+  }
+
   private getRoundTime(): number {
     if (!this.network.connected) return ROUND_TIME_LIMIT;
     const room = this.network.currentRoom;
@@ -412,7 +427,13 @@ export class App {
     const shooting = this.shootingSystem!;
     const scene = this.sceneManager!;
 
-    if (fps.pointerLock.locked && shooting.getAmmo() > 0) {
+    // Handle R key for manual reload
+    if (fps.pointerLock.locked && fps.input.consumeReload()) {
+      shooting.startReload();
+    }
+
+    // Shooting: block during reload
+    if (fps.pointerLock.locked && shooting.getAmmo() > 0 && !shooting.getIsReloading()) {
       const fired = weapon.tryFire(fps.input.mouseDown, now);
       if (fired) {
         const isMoving = fps.input.keys.w || fps.input.keys.a || fps.input.keys.s || fps.input.keys.d;
@@ -424,6 +445,9 @@ export class App {
     weapon.update(dt);
     shooting.update(dt);
 
+    // Sync ammo from authoritative server state
+    this.syncAmmoFromServer();
+
     // Send input to server after local prediction
     this.sendInput(dt);
 
@@ -434,6 +458,8 @@ export class App {
         ammo: shooting.getAmmo(),
         magazineSize: shooting.getMagazineSize(),
         weaponId: this.getLocalWeaponId(),
+        isReloading: shooting.getIsReloading(),
+        reloadProgress: shooting.getReloadProgress(),
         scoreA: this.getScoreA(),
         scoreB: this.getScoreB(),
         roundTime: this.getRoundTime(),

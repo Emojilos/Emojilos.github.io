@@ -156,13 +156,47 @@
     - Score/timer read from Colyseus state, defaults to 0 / ROUND_TIME_LIMIT
     - WeaponId currently hardcoded to 'deagle' (will be dynamic after weapon switching)
 
+## Completed this session (continued 3)
+- TASK-023 (Ammo & reload system — client + server)
+  - Updated packages/client/src/engine/ShootingSystem.ts:
+    - Added reload state machine: _isReloading, reloadTimer, reloadTime (from weapon config)
+    - startReload(): validates not already reloading and magazine not full, starts timer, notifies server
+    - cancelReload(): cancels in-progress reload (for future weapon switch)
+    - completeReload(): refills magazine to magazineSize
+    - syncAmmo(): accepts server authoritative ammo/isReloading, overrides client state
+    - Auto-reload: when ammo hits 0 and not already reloading, startReload() called in update()
+    - fire() blocks during reload (returns false if _isReloading)
+    - getIsReloading(), getReloadProgress() getters for HUD
+    - setReloadCallback() for sending ReloadMessage to server
+  - Updated packages/client/src/engine/InputManager.ts:
+    - Added reloadPressed flag (edge-triggered, not continuous)
+    - R key ('KeyR') sets reloadPressed = true on keydown
+    - consumeReload() returns and resets the flag (consumed per frame)
+  - Updated packages/server/src/rooms/GameRoom.ts:
+    - 'shoot' message handler: validates player alive, not reloading, has ammo, fire rate enforcement via lastShootTime, decrements ammo
+    - 'reload' message handler: validates not already reloading, magazine not full, sets isReloading=true, schedules clock.setTimeout for reloadTime ms, completes by setting isReloading=false and refilling ammo
+  - Updated packages/server/src/schemas/PlayerSchema.ts:
+    - Added lastShootTime (server-only, not replicated) for fire rate enforcement
+  - Updated packages/client/src/App.ts:
+    - Wired shootingSystem.setReloadCallback() to network.send('reload')
+    - R key check in animate loop: consumeReload() triggers shootingSystem.startReload()
+    - Fire condition now checks !shooting.getIsReloading()
+    - syncAmmoFromServer(): reads local player's ammo/isReloading from Colyseus state, calls shootingSystem.syncAmmo()
+    - HUDState now includes isReloading and reloadProgress fields
+  - Updated packages/client/src/ui/GameHUD.ts:
+    - HUDState interface: added isReloading?, reloadProgress?
+    - Added .hud-reload element ("RELOADING..." text with pulse animation)
+    - update() shows/hides reload indicator based on isReloading
+  - Updated packages/client/index.html:
+    - CSS for .hud-reload: orange text, pulsing animation (0.6s ease-in-out)
+
 ## Current state
-- TASK-001 through TASK-020 + TASK-018 all done
-- Server: boots on 2567, room codes, nicknames, move/look with physics+collisions, game loop at 20Hz, updateSettings + startGame handlers
-- Client: Main Menu → Lobby → Playing flow, NetworkManager, App state machine, 3D warehouse scene with FPS controls, physics, weapon model, shooting system with visual effects, remote player capsules synced via Colyseus, in-game HUD
+- TASK-001 through TASK-020 + TASK-018 + TASK-023 all done
+- Server: boots on 2567, room codes, nicknames, move/look with physics+collisions, game loop at 20Hz, updateSettings + startGame handlers, shoot handler with ammo/fire-rate validation, reload handler with timer
+- Client: Main Menu → Lobby → Playing flow, NetworkManager, App state machine, 3D warehouse scene with FPS controls, physics, weapon model, shooting system with visual effects + reload, remote player capsules synced via Colyseus, in-game HUD with reload indicator
 
 ## Next priority tasks (all deps met)
-- TASK-023: Ammo & reload system (deps: TASK-019 done, TASK-018 done) — high, unlocks TASK-024 (critical)
+- TASK-024: Server hit detection (deps: TASK-023 done, TASK-015 done, TASK-020 done) — CRITICAL
 - TASK-021: Client-side prediction (deps: TASK-020 done) — high
 - TASK-022: Entity interpolation (deps: TASK-020 done) — high
 
@@ -171,7 +205,7 @@
 - Input validation: MAX_DELTA_TIME = 0.25s, rejects non-finite, negative, wrong types
 - Server CollisionWorld in packages/server/src/physics/ — mirrors client version without Three.js
 - lastProcessedSeq (uint32) in PlayerSchema — clients will use for prediction reconciliation
-- velocityY and isGrounded are server-only fields (not @type decorated, not replicated)
+- velocityY, isGrounded, lastShootTime are server-only fields (not @type decorated, not replicated)
 - @colyseus/schema v2.0.37 uses legacy decorators (experimentalDecorators: true)
 - tsx needs --tsconfig flag to respect experimentalDecorators from tsconfig.json
 - Room code uses ABCDEFGHJKLMNPQRSTUVWXYZ23456789 charset (no 0/O/1/I confusion)
@@ -206,8 +240,11 @@
 - ShootingSystem spread: base + moving (overrides base) + sustained * consecutiveShots; resets after 300ms idle
 - Decals use ring buffer (MAX_DECALS=64) to prevent memory growth; CircleGeometry oriented via lookAt(point+normal)
 - ShootMessage sent to server: {seq, timestamp, origin: Vec3, direction: Vec3}
-- Ammo check happens before weapon.tryFire() — no recoil animation when magazine empty
-- Server 'shoot' message handler not yet implemented (TASK-024 dependency)
+- Server 'shoot' handler: validates alive, !isReloading, ammo>0, fire rate via lastShootTime, decrements ammo
+- Server 'reload' handler: validates !isReloading, ammo<magazine, sets isReloading=true, clock.setTimeout completes reload
+- Client reload: auto-reload at 0 ammo, R key for manual, blocks firing, syncs from server state
+- Reload timer stored in seconds (reloadTime ms / 1000), ticks down each frame in update()
+- HUD reload indicator: "RELOADING..." with CSS pulse animation, shown/hidden via isReloading flag
 - GameHUD reads hp/score/timer from Colyseus state with fallback defaults
 - GameHUD.update() called every frame in animate loop
 - HUD container appended to playing-screen div, z-index: 10

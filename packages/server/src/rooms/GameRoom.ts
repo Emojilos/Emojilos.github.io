@@ -150,6 +150,55 @@ export class GameRoom extends Room<GameState> {
       console.log(`Game starting! Status → weapon_select`);
     });
 
+    this.onMessage('shoot', (client, message: unknown) => {
+      const player = this.state.players.get(client.sessionId);
+      if (!player || !player.isAlive) return;
+
+      // Validate basic shape
+      if (typeof message !== 'object' || message === null) return;
+
+      // Reject if reloading
+      if (player.isReloading) return;
+
+      // Reject if no ammo
+      if (player.ammo <= 0) return;
+
+      const config = WEAPONS[player.currentWeapon];
+
+      // Fire rate enforcement: check lastShootTime (server-only field)
+      const now = Date.now();
+      if (now - player.lastShootTime < config.fireRate) return;
+      player.lastShootTime = now;
+
+      // Decrement ammo
+      player.ammo--;
+
+      // Hit detection will be implemented in TASK-024
+    });
+
+    this.onMessage('reload', (client) => {
+      const player = this.state.players.get(client.sessionId);
+      if (!player || !player.isAlive) return;
+      if (player.isReloading) return;
+
+      const config = WEAPONS[player.currentWeapon];
+
+      // Don't reload if magazine is full
+      if (player.ammo >= config.magazine) return;
+
+      player.isReloading = true;
+
+      // Schedule reload completion
+      this.clock.setTimeout(() => {
+        // Verify player still exists and is still reloading
+        const p = this.state.players.get(client.sessionId);
+        if (!p || !p.isReloading) return;
+
+        p.isReloading = false;
+        p.ammo = WEAPONS[p.currentWeapon].magazine;
+      }, config.reloadTime);
+    });
+
     this.onMessage('input', (client, message: unknown) => {
       if (!validateInput(message)) {
         console.warn(`Invalid input from ${client.sessionId}`);

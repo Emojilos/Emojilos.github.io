@@ -5,6 +5,8 @@ export interface HUDState {
   ammo: number;
   magazineSize: number;
   weaponId: WeaponId;
+  isReloading?: boolean;
+  reloadProgress?: number; // 0..1
   scoreA: number;
   scoreB: number;
   roundTime: number; // seconds remaining
@@ -22,6 +24,7 @@ export class GameHUD {
   private ammoCurrentEl!: HTMLElement;
   private ammoMagEl!: HTMLElement;
   private weaponNameEl!: HTMLElement;
+  private reloadEl!: HTMLElement;
   private scoreAEl!: HTMLElement;
   private scoreBEl!: HTMLElement;
   private timerEl!: HTMLElement;
@@ -68,6 +71,7 @@ export class GameHUD {
           <span class="hud-ammo-mag">7</span>
         </div>
         <div class="hud-weapon-name">Desert Eagle</div>
+        <div class="hud-reload" style="display:none;">RELOADING...</div>
       </div>
     `;
 
@@ -76,6 +80,7 @@ export class GameHUD {
     this.ammoCurrentEl = this.container.querySelector('.hud-ammo-current')!;
     this.ammoMagEl = this.container.querySelector('.hud-ammo-mag')!;
     this.weaponNameEl = this.container.querySelector('.hud-weapon-name')!;
+    this.reloadEl = this.container.querySelector('.hud-reload')!;
     this.scoreAEl = this.container.querySelector('.hud-score-a')!;
     this.scoreBEl = this.container.querySelector('.hud-score-b')!;
     this.timerEl = this.container.querySelector('.hud-timer')!;
@@ -110,6 +115,13 @@ export class GameHUD {
     // Weapon name
     const weapon = WEAPONS[state.weaponId];
     this.weaponNameEl.textContent = weapon ? weapon.name : state.weaponId;
+
+    // Reload indicator
+    if (state.isReloading) {
+      this.reloadEl.style.display = '';
+    } else {
+      this.reloadEl.style.display = 'none';
+    }
 
     // Score
     this.scoreAEl.textContent = String(state.scoreA);
