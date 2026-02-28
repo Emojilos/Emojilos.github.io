@@ -343,13 +343,23 @@
     - syncWeaponFromServer() now also syncs WeaponModel (not just ShootingSystem)
     - Scroll wheel cycles through weapons cyclically
 
+## Completed this session (continued 10)
+- TASK-029 (MP9 model and auto-fire behavior) — verified fully implemented
+  - All functionality was already built as part of TASK-028 (weapon switching system):
+    - MP9 model: buildMP9Model() in WeaponModel.ts — compact upper receiver, short barrel, stick magazine, folding stock, charging handle, polymer grip
+    - Auto-fire: tryFire() checks config.automatic flag, allows hold-to-fire for MP9 (vs semi-auto for Deagle/SSG-08)
+    - Fire rate: 100ms (10 shots/sec) configured in shared/weapons.ts
+    - Spread: sustained: 0.003 per shot increase, resets after 300ms pause (SPREAD_RESET_TIME)
+    - Visual recoil: 0.06s duration, kickBack=0.03, kickUp=0.02, rotation=0.06
+  - Weapon switch via 1/2/3 keys + scroll wheel already working
+  - TypeScript compiles cleanly on both client and server
+
 ## Current state
-- TASK-001 through TASK-022 + TASK-023 + TASK-024 + TASK-026 + TASK-027 + TASK-028 all done
+- TASK-001 through TASK-022 + TASK-023 + TASK-024 + TASK-026 + TASK-027 + TASK-028 + TASK-029 all done
 - Server: boots on 2567, room codes, nicknames, move/look with physics+collisions, game loop at 20Hz, updateSettings + startGame handlers, shoot handler with ammo/fire-rate validation + server-side hit detection + damage + kill tracking, reload handler with timer, RoundSystem state machine (weapon_select → countdown → playing → round_end → match_end), selectWeapon handler, returnToLobby handler
 - Client: Main Menu → Lobby → Weapon Select → Playing → Match End flow, NetworkManager, App state machine, 3D warehouse scene with FPS controls, physics, **3 weapon models (Deagle/SSG-08/MP9) with switching (1/2/3 keys + scroll)**, shooting system with visual effects + reload + weapon switching, remote player capsules synced via Colyseus, in-game HUD with reload indicator, weapon select screen with 3 cards + timer, match end screen with rematch/quit, round event listeners, client-side prediction with server reconciliation, entity interpolation for smooth remote player movement
 
 ## Next priority tasks (all deps met)
-- TASK-029: MP9 model and auto-fire behavior (deps: TASK-023 done) — high (model built, needs testing)
 - TASK-031: Kill Feed UI (deps: TASK-018 done, TASK-024 done) — medium
 - TASK-032: Scoreboard UI (deps: TASK-018 done) — medium
 - TASK-033: Damage indicator/hitmarker (deps: TASK-018 done, TASK-024 done) — medium

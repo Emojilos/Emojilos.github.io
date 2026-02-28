@@ -459,7 +459,7 @@
         "Шаг 4: Отпустить ЛКМ, подождать — spread уменьшается"
       ],
       "dependencies": ["TASK-023"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-030",
