@@ -291,13 +291,34 @@
     - Prediction buffer cleared on countdown (respawn) event
     - Cleaned up on stopGameLoop()
 
+## Completed this session (continued 8)
+- TASK-022 (Entity interpolation for remote players)
+  - Created packages/client/src/engine/InterpolationBuffer.ts:
+    - Stores timestamped snapshots (x, y, z, yaw, pitch) per remote player
+    - Ring buffer of ~TICK_RATE+2 snapshots (~1 second history)
+    - Render delay = 2/TICK_RATE seconds (100ms at 20Hz) — always have snapshot pair to interpolate
+    - getInterpolated(): finds two snapshots bracketing renderTime, returns lerp'd transform
+    - lerpAngle() handles wrap-around at ±PI for smooth yaw interpolation
+    - Clamps to oldest/newest snapshot if renderTime is outside buffer range
+    - clear() for round reset / respawn
+  - Updated packages/client/src/engine/RemotePlayerManager.ts:
+    - Each RemotePlayer now has an InterpolationBuffer
+    - Replaced updatePlayer() with pushSnapshot(): stores server state in buffer
+    - Added updateInterpolation(): called every frame, reads interpolated transform and applies to group
+    - Added clearBuffers(): clears all interpolation buffers (round reset)
+  - Updated packages/client/src/App.ts:
+    - syncRemotePlayers() now calls pushSnapshot() instead of updatePlayer()
+    - onPlayerAdd pushes initial snapshot with pitch
+    - animate() calls remotePlayers.updateInterpolation() every frame
+    - Countdown handler clears interpolation buffers alongside prediction buffer
+    - PlayerData interface now includes pitch field
+
 ## Current state
-- TASK-001 through TASK-021 + TASK-023 + TASK-024 + TASK-026 + TASK-027 all done
+- TASK-001 through TASK-022 + TASK-023 + TASK-024 + TASK-026 + TASK-027 all done
 - Server: boots on 2567, room codes, nicknames, move/look with physics+collisions, game loop at 20Hz, updateSettings + startGame handlers, shoot handler with ammo/fire-rate validation + server-side hit detection + damage + kill tracking, reload handler with timer, RoundSystem state machine (weapon_select → countdown → playing → round_end → match_end), selectWeapon handler, returnToLobby handler
-- Client: Main Menu → Lobby → Weapon Select → Playing → Match End flow, NetworkManager, App state machine, 3D warehouse scene with FPS controls, physics, weapon model, shooting system with visual effects + reload + weapon switching, remote player capsules synced via Colyseus, in-game HUD with reload indicator, weapon select screen with 3 cards + timer, match end screen with rematch/quit, round event listeners, **client-side prediction with server reconciliation**
+- Client: Main Menu → Lobby → Weapon Select → Playing → Match End flow, NetworkManager, App state machine, 3D warehouse scene with FPS controls, physics, weapon model, shooting system with visual effects + reload + weapon switching, remote player capsules synced via Colyseus, in-game HUD with reload indicator, weapon select screen with 3 cards + timer, match end screen with rematch/quit, round event listeners, client-side prediction with server reconciliation, **entity interpolation for smooth remote player movement**
 
 ## Next priority tasks (all deps met)
-- TASK-022: Entity interpolation (deps: TASK-020 done) — high
 - TASK-028: SSG-08 model (deps: TASK-023 done) — high
 - TASK-029: MP9 model (deps: TASK-023 done) — high
 - TASK-031: Kill Feed UI (deps: TASK-018 done, TASK-024 done) — medium
@@ -369,3 +390,7 @@
 - Weapon damage from config.damage.head / config.damage.body (already separated in weapons.ts)
 - Server sends 'hit' to shooter, 'damaged' to victim, 'kill' broadcast to all; killFeed via Colyseus state sync
 - No friendly fire: hit detection skips players on same team
+- Entity interpolation: InterpolationBuffer stores snapshots per remote player, renders at 100ms delay (2 ticks at 20Hz)
+- InterpolationBuffer: ring buffer of ~22 snapshots, lerp position, lerpAngle for yaw (shortest path wrap-around)
+- RemotePlayerManager.pushSnapshot() replaces old updatePlayer(), updateInterpolation() called every frame
+- Interpolation buffers cleared on countdown event alongside prediction buffers

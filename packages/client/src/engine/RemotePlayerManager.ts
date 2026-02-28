@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { PLAYER_HEIGHT, PLAYER_RADIUS, EYE_HEIGHT } from '@browserstrike/shared';
+import { InterpolationBuffer } from './InterpolationBuffer';
 
 interface RemotePlayer {
   group: THREE.Group;
@@ -7,6 +8,8 @@ interface RemotePlayer {
   head: THREE.Mesh;
   /** Last known team for colour updates */
   team: string;
+  /** Snapshot buffer for smooth interpolation */
+  interpolation: InterpolationBuffer;
 }
 
 const TEAM_COLORS: Record<string, number> = {
@@ -18,7 +21,7 @@ const TEAM_COLORS: Record<string, number> = {
 /**
  * Manages Three.js representations of remote (non-local) players.
  * Spawns/despawns capsule meshes and updates their transforms from
- * Colyseus PlayerSchema data.
+ * Colyseus PlayerSchema data via interpolation buffers.
  */
 export class RemotePlayerManager {
   private players = new Map<string, RemotePlayer>();
@@ -54,7 +57,13 @@ export class RemotePlayerManager {
     group.add(head);
     this.scene.add(group);
 
-    this.players.set(sessionId, { group, body, head, team });
+    this.players.set(sessionId, {
+      group,
+      body,
+      head,
+      team,
+      interpolation: new InterpolationBuffer(),
+    });
   }
 
   /** Remove a remote player from the scene. */
@@ -66,19 +75,23 @@ export class RemotePlayerManager {
     rp.body.geometry.dispose();
     rp.head.geometry.dispose();
     (rp.body.material as THREE.Material).dispose();
-    // head shares the same material reference? No — each has its own.
     (rp.head.material as THREE.Material).dispose();
+    rp.interpolation.clear();
 
     this.players.delete(sessionId);
   }
 
-  /** Update position and rotation for a remote player. */
-  updatePlayer(
+  /**
+   * Push a new server snapshot for a remote player.
+   * Called on every Colyseus state change.
+   */
+  pushSnapshot(
     sessionId: string,
     x: number,
     y: number,
     z: number,
     yaw: number,
+    pitch: number,
     team: string,
   ): void {
     if (sessionId === this.localSessionId) return;
@@ -86,8 +99,7 @@ export class RemotePlayerManager {
     const rp = this.players.get(sessionId);
     if (!rp) return;
 
-    rp.group.position.set(x, y, z);
-    rp.group.rotation.y = yaw;
+    rp.interpolation.push(x, y, z, yaw, pitch);
 
     // Update colour if team changed
     if (rp.team !== team) {
@@ -95,6 +107,27 @@ export class RemotePlayerManager {
       const color = TEAM_COLORS[team] ?? TEAM_COLORS.unassigned;
       (rp.body.material as THREE.MeshLambertMaterial).color.setHex(color);
       (rp.head.material as THREE.MeshLambertMaterial).color.setHex(color);
+    }
+  }
+
+  /**
+   * Tick interpolation for all remote players.
+   * Called every frame from the render loop.
+   */
+  updateInterpolation(): void {
+    for (const rp of this.players.values()) {
+      const interp = rp.interpolation.getInterpolated();
+      if (interp) {
+        rp.group.position.set(interp.x, interp.y, interp.z);
+        rp.group.rotation.y = interp.yaw;
+      }
+    }
+  }
+
+  /** Clear all interpolation buffers (e.g. on round reset). */
+  clearBuffers(): void {
+    for (const rp of this.players.values()) {
+      rp.interpolation.clear();
     }
   }
 

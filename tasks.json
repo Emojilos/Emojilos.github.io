@@ -302,7 +302,7 @@
         "Шаг 4: При 20 tick rate движение не выглядит дёрганым"
       ],
       "dependencies": ["TASK-020"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-023",

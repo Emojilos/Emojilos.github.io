@@ -389,16 +389,17 @@ export class App {
 
     this.network.listen({
       onPlayerAdd: (sessionId, player) => {
-        const p = player as { team?: string; x?: number; y?: number; z?: number; yaw?: number };
+        const p = player as { team?: string; x?: number; y?: number; z?: number; yaw?: number; pitch?: number };
         this.remotePlayers?.addPlayer(sessionId, p.team ?? 'unassigned');
-        // Set initial position
+        // Push initial snapshot for interpolation
         if (p.x !== undefined) {
-          this.remotePlayers?.updatePlayer(
+          this.remotePlayers?.pushSnapshot(
             sessionId,
             p.x,
             p.y ?? 0,
             p.z ?? 0,
             p.yaw ?? 0,
+            p.pitch ?? 0,
             p.team ?? 'unassigned',
           );
         }
@@ -417,6 +418,8 @@ export class App {
       console.log(`Countdown: ${data.seconds}s`);
       // Clear prediction buffer on respawn — server resets positions
       this.prediction?.clear();
+      // Clear interpolation buffers — remote players teleport to spawn points
+      this.remotePlayers?.clearBuffers();
     });
 
     this.network.onMessage('roundStart', (data: { round: number }) => {
@@ -479,14 +482,15 @@ export class App {
         // Local player — reconcile prediction
         this.reconcileLocalPlayer(p);
       } else if (this.remotePlayers) {
-        // Remote player — update capsule
+        // Remote player — ensure spawned, then push snapshot for interpolation
         this.remotePlayers.addPlayer(sessionId, p.team ?? 'unassigned');
-        this.remotePlayers.updatePlayer(
+        this.remotePlayers.pushSnapshot(
           sessionId,
           p.x,
           p.y,
           p.z,
           p.yaw,
+          p.pitch ?? 0,
           p.team ?? 'unassigned',
         );
       }
@@ -665,6 +669,9 @@ export class App {
     // Send input to server after local prediction
     this.sendInput(dt);
 
+    // Interpolate remote players between server snapshots
+    this.remotePlayers?.updateInterpolation();
+
     // Update HUD
     if (this.gameHUD) {
       this.gameHUD.update({
@@ -691,6 +698,7 @@ interface PlayerData {
   y: number;
   z: number;
   yaw: number;
+  pitch: number;
   team?: string;
 }
 
