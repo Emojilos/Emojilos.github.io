@@ -671,7 +671,7 @@
         "Шаг 4: Коллизии корректны на обоих этажах"
       ],
       "dependencies": ["TASK-036"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-040",

@@ -1083,3 +1083,52 @@
   - Collision data shared between client and server via mapCollisions.ts
   - GLTF loaded by MapLoader with _collision mesh extraction; procedural fallback if load fails
   - To regenerate: node scripts/generate-dust-alley.mjs (or npm run generate:maps for all)
+
+## Completed this session (continued 30)
+- TASK-039 (Office GLTF map — two floors with stairs)
+  - Added collision data to packages/shared/src/constants/mapCollisions.ts:
+    - OFFICE_VISUALS: ~30 collision/visual boxes defining the two-story office layout
+    - OFFICE_DATA exported as MapCollisionData, registered in MAP_COLLISION_DATA
+    - Two-story design: ground floor (y=0..4) and second floor (y=4..8)
+    - Second floor slab covers east half (x=0 to x=20), 0.3m thick at y=4
+    - Ground floor: 3 rooms on west side (divided by walls at z=-4, z=4, x=-6)
+    - Ground floor east: open area under 2nd floor with wall partitions at x=6
+    - Two staircases: west (x=1.5, z=0) and east (x=14, z=0) — 3 ascending AABB steps each
+    - Stair steps: 1m, 2m, 3m height blocks creating walkable ramp via AABB collision
+    - Second floor: two office rooms divided by walls at x=10 and z=0
+    - Cover objects on both floors: desks, filing cabinets, crates
+    - 2nd floor cover positioned at baseY=4 (sitting on the slab)
+    - Gaps in corridor walls for doorways/passages
+  - Created scripts/generate-office.mjs:
+    - Office/industrial theme materials (concrete gray floors, drywall inner walls)
+    - Concrete outer walls with base trim strips
+    - Drywall interior walls with top trim strips
+    - Stair blocks with distinct tread strips on top (darker step surface)
+    - Metal railings along 2nd floor open edge (posts + horizontal bars)
+    - Window frames with semi-transparent glass panels on outer walls
+    - Overhead light housings with emissive panels (4 per floor)
+    - 4 structural metal pillars along 2nd floor edge
+    - 2nd floor carpet material (lighter, warmer tone vs ground concrete)
+    - Ground floor ceiling (west side only — east side has 2nd floor slab above)
+    - 2nd floor ceiling at y=8
+    - Spawn markers: blue ring at (-16,0,-16) ground floor, brown ring at (16,4,16) 2nd floor
+    - 1682 triangles total (well under 10k budget)
+    - Output: 194.6 KB GLB at packages/client/public/models/maps/office.glb
+  - Updated packages/client/src/engine/MapLoader.ts:
+    - Added office to GLTF_PATHS: '/models/maps/office.glb'
+  - Updated package.json:
+    - generate:maps script now runs warehouse, dust_alley, and office generators
+  - Spawn points from shared/constants/maps.ts: A at (-16,0,-16), B at (16,4,16)
+  - TypeScript compiles cleanly for shared, client, and server packages
+  - Client vite build succeeds, office.glb included in public/models/maps/
+- Office map notes:
+  - Two-story vertical gameplay: Team A spawns ground floor NW, Team B spawns 2nd floor SE
+  - 2nd floor covers east half only — creates asymmetric vertical gameplay
+  - Two staircases at x=1.5 and x=14 provide vertical routes
+  - Stair implementation: 3 overlapping AABB boxes (1m, 2m, 3m) — player walks up via collision resolution
+  - West ground floor has 3 rooms (NW, center-W, SW) divided by corridor and cross walls
+  - East ground floor is open area under 2nd floor with partitioning walls
+  - 2nd floor has 2 offices (NE, SE) divided by walls
+  - Collision data shared between client and server via mapCollisions.ts
+  - GLTF loaded by MapLoader with _collision mesh extraction; procedural fallback if load fails
+  - To regenerate: node scripts/generate-office.mjs (or npm run generate:maps for all)

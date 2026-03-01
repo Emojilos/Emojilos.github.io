@@ -152,11 +152,100 @@ export const DUST_ALLEY_DATA: MapCollisionData = {
   floorSize: { width: 40, depth: 40 },
 };
 
+// ── Office ────────────────────────────────────────────────
+
+const OF_WALL_HEIGHT = 4;
+const OF_FLOOR2_Y = 4;  // Second floor at y=4
+const OF_WALL_T = 0.4;
+
+function ofWall(w: number, h: number, d: number, x: number, y: number, z: number): VisualBox {
+  return { cx: x, cy: y, cz: z, hx: w / 2, hy: h / 2, hz: d / 2, material: 'wall' };
+}
+
+function ofCrate(w: number, h: number, d: number, x: number, z: number, baseY = 0, dark = false): VisualBox {
+  return { cx: x, cy: baseY + h / 2, cz: z, hx: w / 2, hy: h / 2, hz: d / 2, material: dark ? 'crate_dark' : 'crate' };
+}
+
+const OFFICE_VISUALS: VisualBox[] = [
+  // ── Outer walls (40×40, ground floor) ──────────────────
+  ofWall(40, OF_WALL_HEIGHT, OF_WALL_T, 0, OF_WALL_HEIGHT / 2, -20),   // North
+  ofWall(40, OF_WALL_HEIGHT, OF_WALL_T, 0, OF_WALL_HEIGHT / 2, 20),    // South
+  ofWall(OF_WALL_T, OF_WALL_HEIGHT, 40, -20, OF_WALL_HEIGHT / 2, 0),   // West
+  ofWall(OF_WALL_T, OF_WALL_HEIGHT, 40, 20, OF_WALL_HEIGHT / 2, 0),    // East
+
+  // ── Outer walls (second floor) ─────────────────────────
+  ofWall(40, OF_WALL_HEIGHT, OF_WALL_T, 0, OF_FLOOR2_Y + OF_WALL_HEIGHT / 2, -20),
+  ofWall(40, OF_WALL_HEIGHT, OF_WALL_T, 0, OF_FLOOR2_Y + OF_WALL_HEIGHT / 2, 20),
+  ofWall(OF_WALL_T, OF_WALL_HEIGHT, 40, -20, OF_FLOOR2_Y + OF_WALL_HEIGHT / 2, 0),
+  ofWall(OF_WALL_T, OF_WALL_HEIGHT, 40, 20, OF_FLOOR2_Y + OF_WALL_HEIGHT / 2, 0),
+
+  // ── Second floor platform (covers east half: x=0 to x=20) ──
+  // Thick slab acting as floor/ceiling
+  ofWall(20, 0.3, 40, 10, OF_FLOOR2_Y - 0.15, 0),
+
+  // ── Ground floor interior walls ────────────────────────
+  // Long corridor wall dividing ground floor (x=-6, partial)
+  ofWall(OF_WALL_T, OF_WALL_HEIGHT, 16, -6, OF_WALL_HEIGHT / 2, -12),  // North section
+  ofWall(OF_WALL_T, OF_WALL_HEIGHT, 12, -6, OF_WALL_HEIGHT / 2, 10),   // South section (gap at z=2..4)
+
+  // Cross wall creating rooms on west side
+  ofWall(14, OF_WALL_HEIGHT, OF_WALL_T, -13, OF_WALL_HEIGHT / 2, -4),  // Divider at z=-4
+  ofWall(10, OF_WALL_HEIGHT, OF_WALL_T, -15, OF_WALL_HEIGHT / 2, 4),   // Divider at z=4 (gap at east end)
+
+  // Wall under the 2nd floor east side (creates room at ground level)
+  ofWall(OF_WALL_T, OF_WALL_HEIGHT, 14, 6, OF_WALL_HEIGHT / 2, -6),    // Pillar wall at x=6 north
+  ofWall(OF_WALL_T, OF_WALL_HEIGHT, 10, 6, OF_WALL_HEIGHT / 2, 11),    // Pillar wall at x=6 south (gap for passage)
+
+  // ── Stairs (3 step blocks forming a ramp, west side of 2nd floor edge) ──
+  // Stair at x=0..3, z=-2..2 — ascending from ground to 2nd floor
+  ofWall(3, 1.0, 4, 1.5, 0.5, 0),     // Step 1: y=0 to 1
+  ofWall(3, 2.0, 4, 1.5, 1.0, 0),     // Step 2: y=0 to 2 (overlap creates stair shape via AABB)
+  ofWall(3, 3.0, 4, 1.5, 1.5, 0),     // Step 3: y=0 to 3
+
+  // Second staircase at back (x=14, z=0) — south-east corner
+  ofWall(3, 1.0, 4, 14, 0.5, 0),
+  ofWall(3, 2.0, 4, 14, 1.0, 0),
+  ofWall(3, 3.0, 4, 14, 1.5, 0),
+
+  // ── Second floor interior walls ────────────────────────
+  // Divider creating two rooms on 2nd floor
+  ofWall(OF_WALL_T, OF_WALL_HEIGHT, 16, 10, OF_FLOOR2_Y + OF_WALL_HEIGHT / 2, -12),  // North office
+  ofWall(OF_WALL_T, OF_WALL_HEIGHT, 12, 10, OF_FLOOR2_Y + OF_WALL_HEIGHT / 2, 10),   // South office (gap for door)
+
+  // Cross wall on 2nd floor
+  ofWall(10, OF_WALL_HEIGHT, OF_WALL_T, 15, OF_FLOOR2_Y + OF_WALL_HEIGHT / 2, 0),
+
+  // ── Cover objects ──────────────────────────────────────
+  // Ground floor west rooms
+  ofCrate(1.5, 1.0, 1.5, -14, -14),               // NW room
+  ofCrate(2, 1.2, 1, -10, -8, 0, true),            // NW room desk
+  ofCrate(1.5, 1.0, 2, -14, 8),                    // SW room
+  ofCrate(1, 1.5, 1, -18, 14, 0, true),            // SW corner
+
+  // Ground floor east (under 2nd floor)
+  ofCrate(2, 1.0, 2, 14, -14, 0, true),            // NE storage
+  ofCrate(1.5, 1.2, 1.5, 10, 14),                  // SE storage
+
+  // Second floor cover
+  ofCrate(2, 1.0, 1, 16, -10, OF_FLOOR2_Y, true),  // 2nd floor NE
+  ofCrate(1.5, 1.2, 1.5, 12, 10, OF_FLOOR2_Y),     // 2nd floor SE
+  ofCrate(1, 1.0, 2, 4, -16, OF_FLOOR2_Y, true),    // 2nd floor ledge cover
+  ofCrate(1.5, 1.0, 1.5, 4, 16, OF_FLOOR2_Y),       // 2nd floor south ledge
+];
+
+export const OFFICE_DATA: MapCollisionData = {
+  id: 'office',
+  collisions: OFFICE_VISUALS,
+  visuals: OFFICE_VISUALS,
+  floorSize: { width: 40, depth: 40 },
+};
+
 // ── Map registry ─────────────────────────────────────────
 
 const MAP_COLLISION_DATA: Record<string, MapCollisionData> = {
   warehouse: WAREHOUSE_DATA,
   dust_alley: DUST_ALLEY_DATA,
+  office: OFFICE_DATA,
 };
 
 /**

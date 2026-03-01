@@ -120,7 +120,7 @@ const gltfLoader = new GLTFLoader();
 const GLTF_PATHS: Partial<Record<MapId, string>> = {
   warehouse: '/models/maps/warehouse.glb',
   dust_alley: '/models/maps/dust_alley.glb',
-  // Future: office: '/models/maps/office.glb',
+  office: '/models/maps/office.glb',
   // Future: trainyard: '/models/maps/trainyard.glb',
 };
 
