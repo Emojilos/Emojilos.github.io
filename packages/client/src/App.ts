@@ -683,7 +683,17 @@ export class App {
     if (!this.prediction || !this.fpsController) return;
 
     const serverSeq = serverPlayer.lastProcessedSeq ?? 0;
-    if (serverSeq === 0) return; // Server hasn't processed any input yet
+    if (serverSeq === 0) {
+      // Server hasn't processed any input yet — teleport to spawn position
+      this.fpsController.setPhysicsState({
+        x: serverPlayer.x,
+        y: serverPlayer.y,
+        z: serverPlayer.z,
+        velocityY: 0,
+        isGrounded: true,
+      });
+      return;
+    }
 
     // Ping estimation: RTT from input send → server ack
     const sendTime = this.pingSeqSendTimes.get(serverSeq);
