@@ -114,7 +114,9 @@ export class LobbyScreen {
     this.joinABtn = document.createElement('button');
     this.joinABtn.className = 'menu-btn lobby-team-btn lobby-team-a-btn';
     this.joinABtn.textContent = 'Join Team A';
-    this.joinABtn.addEventListener('click', () => this.callbacks?.onJoinTeam('A'));
+    this.joinABtn.addEventListener('click', () => {
+      this.callbacks?.onJoinTeam('A');
+    });
     teamACol.appendChild(this.joinABtn);
     teamsSection.appendChild(teamACol);
 
@@ -137,7 +139,9 @@ export class LobbyScreen {
     this.joinBBtn = document.createElement('button');
     this.joinBBtn.className = 'menu-btn lobby-team-btn lobby-team-b-btn';
     this.joinBBtn.textContent = 'Join Team B';
-    this.joinBBtn.addEventListener('click', () => this.callbacks?.onJoinTeam('B'));
+    this.joinBBtn.addEventListener('click', () => {
+      this.callbacks?.onJoinTeam('B');
+    });
     teamBCol.appendChild(this.joinBBtn);
     teamsSection.appendChild(teamBCol);
 

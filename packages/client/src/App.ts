@@ -162,18 +162,10 @@ export class App {
     this.lobbyScreen = new LobbyScreen(lobbyEl);
     this.lobbyScreen.setCallbacks({
       onJoinTeam: (team: Team) => {
-        try {
-          this.network.send('joinTeam', { team });
-        } catch (err) {
-          console.error('joinTeam failed:', err);
-        }
+        this.network.send('joinTeam', { team });
       },
       onUpdateSettings: (settings: { mode?: GameMode; mapId?: MapId; roundsToWin?: RoundsToWin }) => {
-        try {
-          this.network.send('updateSettings', settings);
-        } catch (err) {
-          console.error('updateSettings failed:', err);
-        }
+        this.network.send('updateSettings', settings);
       },
       onStartGame: () => {
         try {
@@ -215,7 +207,7 @@ export class App {
 
     const settings = state.settings as Record<string, unknown> | undefined;
 
-    this.lobbyScreen.update({
+    const lobbyData = {
       roomCode: (state.roomCode as string) || '',
       adminId: (state.adminId as string) || '',
       localSessionId: this.network.sessionId,
@@ -224,8 +216,10 @@ export class App {
         mode: (settings.mode as GameMode) || '2v2',
         mapId: (settings.mapId as MapId) || 'warehouse',
         roundsToWin: (settings.roundsToWin as RoundsToWin) || 5,
-      } : { mode: '2v2', mapId: 'warehouse', roundsToWin: 5 },
-    });
+      } : { mode: '2v2' as GameMode, mapId: 'warehouse' as MapId, roundsToWin: 5 as RoundsToWin },
+    };
+
+    this.lobbyScreen.update(lobbyData);
 
     // Check if game status changed to weapon_select → transition to PLAYING
     const gameStatus = state.status as string;
