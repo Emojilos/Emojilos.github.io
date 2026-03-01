@@ -965,3 +965,43 @@
   - Mute state stored separately from volume settings (browserstrike_muted localStorage key)
   - Volume slider range 0-100 (integer) maps to 0.0-1.0 (float) for AudioManager
   - Panel is modal overlay — click outside or × to close
+
+## Completed this session (continued 27)
+- TASK-043 (Crosshair settings UI)
+  - Created packages/client/src/ui/CrosshairSettings.ts:
+    - Modal overlay (z-index:50) matching project dark theme
+    - Color presets: Green, Red, White, Yellow — quick-select buttons with colored circles
+    - HEX color input with live validation (/^#[0-9a-fA-F]{6}$/)
+    - Sliders: Size (4-40px arm length), Thickness (1-6px), Gap (0-20px center gap)
+    - Toggles: Center Dot (on/off), Outline (dark shadow on/off)
+    - Live preview in dark box showing current crosshair configuration
+    - applyToHUD(): updates in-game .hud-crosshair elements with current config
+    - Gap implemented via CSS clip-path on horizontal/vertical arms
+    - Settings persisted to localStorage (browserstrike_crosshair key)
+    - Loads saved config on construction, rebuilds UI on show()
+  - Updated packages/client/src/ui/MenuScreen.ts:
+    - Added onOpenCrosshairSettings callback to MenuCallbacks interface
+    - Added crosshair button (+) alongside gear button in top-right settings row
+    - Refactored single settings button into .menu-settings-row flex container
+  - Updated packages/client/src/App.ts:
+    - CrosshairSettings instantiated in constructor (persists across game sessions)
+    - setOnUpdate callback wired to applyToHUD() for live updates
+    - applyToHUD() called after GameHUD creation in startGameLoop()
+    - onOpenCrosshairSettings callback wired in initMenuScreen
+  - Updated packages/client/index.html:
+    - Full CSS for .crosshair-settings-overlay and .crosshair-settings-panel
+    - .cs-preview: dark background preview area
+    - .cs-preset-btn: colored circles with hover scale effect
+    - .cs-hex-input: monospace input for HEX codes
+    - .cs-slider: custom range input with orange thumb (matching project accent)
+    - .cs-checkbox: orange accent color
+    - .menu-settings-row: flex container for multiple settings buttons
+  - TypeScript compiles cleanly for client, server, and shared packages
+  - Client vite build succeeds
+- Crosshair settings notes:
+  - Default config: green (#00ff44), size 10, thickness 2, gap 0, dot on, outline on
+  - Settings accessible from main menu via + button (top-right, next to gear icon)
+  - applyToHUD() modifies live DOM elements in .hud-crosshair when game is playing
+  - Gap uses clip-path polygon to cut center from arms (avoids splitting into 4 separate elements)
+  - Preview renders inline HTML in .cs-preview div with absolute-positioned arm divs
+  - CrosshairConfig interface exported for potential future use

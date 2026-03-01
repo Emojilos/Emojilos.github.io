@@ -12,6 +12,7 @@ export interface MenuCallbacks {
   onCreateRoom: (nickname: string) => Promise<void>;
   onJoinRoom: (roomCode: string, nickname: string) => Promise<void>;
   onOpenSettings?: () => void;
+  onOpenCrosshairSettings?: () => void;
 }
 
 export class MenuScreen {
@@ -104,7 +105,19 @@ export class MenuScreen {
 
     this.container.appendChild(panel);
 
-    // Settings button (gear icon, top-right)
+    // Settings buttons row (top-right)
+    const settingsBtnRow = document.createElement('div');
+    settingsBtnRow.className = 'menu-settings-row';
+
+    const crosshairBtn = document.createElement('button');
+    crosshairBtn.className = 'menu-settings-btn';
+    crosshairBtn.innerHTML = '+'; // crosshair symbol
+    crosshairBtn.title = 'Crosshair Settings';
+    crosshairBtn.addEventListener('click', () => {
+      if (this.callbacks?.onOpenCrosshairSettings) this.callbacks.onOpenCrosshairSettings();
+    });
+    settingsBtnRow.appendChild(crosshairBtn);
+
     const settingsBtn = document.createElement('button');
     settingsBtn.className = 'menu-settings-btn';
     settingsBtn.innerHTML = '&#9881;'; // gear symbol
@@ -112,7 +125,9 @@ export class MenuScreen {
     settingsBtn.addEventListener('click', () => {
       if (this.callbacks?.onOpenSettings) this.callbacks.onOpenSettings();
     });
-    this.container.appendChild(settingsBtn);
+    settingsBtnRow.appendChild(settingsBtn);
+
+    this.container.appendChild(settingsBtnRow);
 
     // Event listeners
     this.createBtn.addEventListener('click', () => this.handleCreate());

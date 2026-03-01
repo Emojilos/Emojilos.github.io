@@ -757,7 +757,7 @@
         "Шаг 4: Перезагрузить страницу → настройки сохранены"
       ],
       "dependencies": ["TASK-018"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-044",

@@ -652,8 +652,11 @@
     .ss-mute-btn.ss-muted {
       background: #5a1a1a; border-color: #ff4444; color: #ff8888;
     }
-    .menu-settings-btn {
+    .menu-settings-row {
       position: absolute; top: 16px; right: 16px;
+      display: flex; gap: 8px;
+    }
+    .menu-settings-btn {
       background: #16213e; border: 1px solid #0f3460;
       border-radius: 8px; color: #888; font-size: 1.4rem;
       width: 40px; height: 40px; cursor: pointer;
@@ -661,6 +664,87 @@
       transition: border-color 0.2s, color 0.2s;
     }
     .menu-settings-btn:hover { border-color: #ff6b00; color: #ff6b00; }
+
+    /* Crosshair Settings */
+    .crosshair-settings-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 50;
+    }
+    .crosshair-settings-panel {
+      background: #16213e; border-radius: 12px;
+      padding: 24px; width: 340px; max-height: 90vh; overflow-y: auto;
+      border: 1px solid #0f3460;
+    }
+    .cs-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 16px;
+    }
+    .cs-title { color: #ff6b00; font-size: 1.1rem; font-weight: 700; }
+    .cs-close-btn {
+      background: none; border: none; color: #888; font-size: 1.5rem;
+      cursor: pointer; line-height: 1;
+    }
+    .cs-close-btn:hover { color: #ff6b00; }
+    .cs-preview {
+      display: flex; align-items: center; justify-content: center;
+      background: #0a0a1a; border-radius: 8px;
+      height: 100px; margin-bottom: 16px;
+    }
+    .cs-section { margin-bottom: 12px; }
+    .cs-label {
+      color: #aaa; font-size: 0.85rem; display: block; margin-bottom: 4px;
+    }
+    .cs-presets {
+      display: flex; gap: 8px; margin-bottom: 8px;
+    }
+    .cs-preset-btn {
+      width: 28px; height: 28px; border-radius: 50%;
+      border: 2px solid #0f3460; cursor: pointer;
+      transition: border-color 0.2s, transform 0.15s;
+    }
+    .cs-preset-btn:hover { border-color: #ff6b00; transform: scale(1.15); }
+    .cs-hex-row {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .cs-hex-label { color: #666; font-size: 0.8rem; }
+    .cs-hex-input {
+      background: #0a0a1a; border: 1px solid #0f3460; border-radius: 4px;
+      color: #ddd; padding: 4px 8px; font-size: 0.85rem; width: 90px;
+      font-family: monospace;
+    }
+    .cs-hex-input:focus { outline: none; border-color: #ff6b00; }
+    .cs-slider-row {
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .cs-value {
+      color: #ff6b00; font-weight: 600; font-size: 0.85rem; min-width: 24px;
+      text-align: right;
+    }
+    .cs-slider {
+      width: 100%; height: 4px; -webkit-appearance: none; appearance: none;
+      background: #0f3460; border-radius: 2px; outline: none;
+      margin-top: 4px;
+    }
+    .cs-slider::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 14px; height: 14px;
+      background: #ff6b00; border-radius: 50%; cursor: pointer;
+    }
+    .cs-slider::-moz-range-thumb {
+      width: 14px; height: 14px;
+      background: #ff6b00; border-radius: 50%; cursor: pointer; border: none;
+    }
+    .cs-toggles {
+      display: flex; gap: 16px;
+    }
+    .cs-toggle-row {
+      display: flex; align-items: center; gap: 6px;
+      color: #aaa; font-size: 0.85rem; cursor: pointer;
+    }
+    .cs-checkbox {
+      accent-color: #ff6b00; width: 16px; height: 16px; cursor: pointer;
+    }
 
   </style>
 </head>

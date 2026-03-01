@@ -18,6 +18,7 @@ import type { ScoreboardState, ScoreboardPlayer } from './ui/Scoreboard';
 import { DebugOverlay } from './ui/DebugOverlay';
 import { AudioManager } from './engine/AudioManager';
 import { SoundSettings } from './ui/SoundSettings';
+import { CrosshairSettings } from './ui/CrosshairSettings';
 import { QualitySettings } from './engine/QualitySettings';
 import { PLAYER_HP, ROUND_TIME_LIMIT, DEFAULT_WEAPON, DEFAULT_MAP, WEAPON_IDS } from '@browserstrike/shared';
 import type { InputMessage, ShootMessage, Team, GameMode, MapId, RoundsToWin, WeaponId, KillEvent, RoundEndEvent, MatchEndEvent } from '@browserstrike/shared';
@@ -59,6 +60,7 @@ export class App {
   private debugOverlay: DebugOverlay | null = null;
   private audioManager: AudioManager;
   private soundSettings: SoundSettings;
+  private crosshairSettings: CrosshairSettings;
   private qualitySettings: QualitySettings;
 
   // FPS tracking
@@ -89,6 +91,8 @@ export class App {
     this.network = new NetworkManager();
     this.audioManager = new AudioManager();
     this.soundSettings = new SoundSettings(this.audioManager);
+    this.crosshairSettings = new CrosshairSettings();
+    this.crosshairSettings.setOnUpdate(() => this.crosshairSettings.applyToHUD());
     this.qualitySettings = new QualitySettings();
 
     // Resume AudioContext on first user interaction
@@ -143,6 +147,9 @@ export class App {
       },
       onOpenSettings: () => {
         this.soundSettings.show();
+      },
+      onOpenCrosshairSettings: () => {
+        this.crosshairSettings.show();
       },
     });
   }
@@ -382,6 +389,8 @@ export class App {
     const playingScreen = this.screens.get(AppState.PLAYING);
     if (playingScreen) {
       this.gameHUD = new GameHUD(playingScreen);
+      // Apply saved crosshair settings to HUD
+      this.crosshairSettings.applyToHUD();
 
       // Weapon select overlay — shown during weapon_select phase
       this.weaponSelectScreen = new WeaponSelectScreen(playingScreen);
