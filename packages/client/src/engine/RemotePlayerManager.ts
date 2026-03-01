@@ -122,6 +122,8 @@ interface RemotePlayer {
   prevZ: number;
   walkPhase: number;
   speed: number; // smoothed speed for animation blending
+  // Spatial footstep tracking
+  footstepAccum: number;
 }
 
 const TEAM_COLORS: Record<string, number> = {
@@ -134,6 +136,9 @@ const WALK_SWING = 0.45; // max leg/arm swing angle (radians)
 const WALK_FREQUENCY = 8; // swing cycles per unit of movement
 const SPEED_SMOOTH = 12; // how fast speed ramps up/down
 
+/** Callback for spatial footstep audio. */
+export type SpatialFootstepCallback = (x: number, y: number, z: number) => void;
+
 /**
  * Manages Three.js representations of remote (non-local) players.
  * Renders low-poly humanoid figures with team colors, walking animation,
@@ -141,11 +146,17 @@ const SPEED_SMOOTH = 12; // how fast speed ramps up/down
  */
 export class RemotePlayerManager {
   private players = new Map<string, RemotePlayer>();
+  private onSpatialFootstep: SpatialFootstepCallback | null = null;
 
   constructor(
     private readonly scene: THREE.Scene,
     private readonly localSessionId: string,
   ) {}
+
+  /** Register a callback for spatial footstep sounds from remote players. */
+  setSpatialFootstepCallback(cb: SpatialFootstepCallback): void {
+    this.onSpatialFootstep = cb;
+  }
 
   /** Add a remote player humanoid to the scene. */
   addPlayer(sessionId: string, team: string): void {
@@ -224,6 +235,7 @@ export class RemotePlayerManager {
       prevZ: 0,
       walkPhase: 0,
       speed: 0,
+      footstepAccum: 0,
     });
   }
 
@@ -339,6 +351,17 @@ export class RemotePlayerManager {
 
       // Only animate when moving above threshold
       const isMoving = rp.speed > 0.3;
+
+      // Spatial footstep sounds
+      if (isMoving && this.onSpatialFootstep) {
+        rp.footstepAccum += frameDt;
+        if (rp.footstepAccum >= 0.4) {
+          rp.footstepAccum -= 0.4;
+          this.onSpatialFootstep(interp.x, interp.y, interp.z);
+        }
+      } else {
+        rp.footstepAccum = 0;
+      }
 
       if (isMoving) {
         rp.walkPhase += dist * WALK_FREQUENCY;

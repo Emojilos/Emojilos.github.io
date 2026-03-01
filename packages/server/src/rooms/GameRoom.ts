@@ -226,6 +226,15 @@ export class GameRoom extends Room<GameState> {
       // Decrement ammo
       player.ammo--;
 
+      // Broadcast shoot sound to other players (spatial audio)
+      this.broadcast('remoteShoot', {
+        sessionId: client.sessionId,
+        weaponId: player.currentWeapon,
+        x: player.x,
+        y: player.y,
+        z: player.z,
+      }, { except: client });
+
       // --- Hit detection (TASK-024) ---
 
       // Use server-authoritative origin (player position + eye height)

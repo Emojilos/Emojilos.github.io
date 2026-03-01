@@ -397,6 +397,9 @@ export class App {
       this.sceneManager.scene,
       this.network.sessionId,
     );
+    this.remotePlayers.setSpatialFootstepCallback((x, y, z) => {
+      this.audioManager.playSpatialFootstep(x, y, z);
+    });
     this.setupNetworkListeners();
 
     this.inputSeq = 0;
@@ -545,6 +548,11 @@ export class App {
       const yaw = this.fpsController?.yaw ?? 0;
       this.damageEffects?.showDamage(data.damage, data.direction.x, data.direction.z, yaw);
       this.audioManager.playDamage();
+    });
+
+    // Remote player shot — play spatial gunshot sound
+    this.network.onMessage('remoteShoot', (data: { sessionId: string; weaponId: WeaponId; x: number; y: number; z: number }) => {
+      this.audioManager.playSpatialGunshot(data.weaponId as WeaponId, data.x, data.y + 1.5, data.z);
     });
   }
 
@@ -1020,6 +1028,12 @@ export class App {
 
       // Send input to server after local prediction
       this.sendInput(dt);
+    }
+
+    // Update audio listener position/orientation to match camera
+    if (this.fpsController) {
+      const pos = this.fpsController.position;
+      this.audioManager.updateListener(pos.x, pos.y, pos.z, this.fpsController.yaw);
     }
 
     // Interpolate remote players between server snapshots + walking animation

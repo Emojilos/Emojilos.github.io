@@ -856,3 +856,38 @@
   - Players count from Colyseus state.players map size
   - Server tick shows currentRound from game state
   - Overlay is pointer-events:none — doesn't interfere with mouse/clicks
+
+## Completed this session (continued 24)
+- TASK-042 (Spatial audio for remote players)
+  - Updated packages/server/src/rooms/GameRoom.ts:
+    - Added 'remoteShoot' broadcast in shoot handler (after fire rate + ammo validation)
+    - Sends {sessionId, weaponId, x, y, z} to all clients except the shooter
+    - Uses Colyseus broadcast with { except: client } filter
+  - Updated packages/client/src/engine/AudioManager.ts:
+    - Added updateListener(x, y, z, yaw): updates AudioContext.listener position and orientation
+    - Uses modern API (positionX/forwardX) with legacy fallback (setPosition/setOrientation)
+    - Added createPanner(x, y, z): creates PannerNode with HRTF panning model
+    - Distance model: inverse, refDistance=3, maxDistance=80, rolloffFactor=1.2
+    - Added playSpatialGunshot(weaponId, x, y, z): 3D positioned weapon sounds
+    - Per-weapon spatial variants: slightly quieter/adjusted versions routed through PannerNode
+    - Added playSpatialFootstep(x, y, z): 3D positioned footstep noise tap
+    - Footstep sounds use lowpass filter with random frequency variation for natural feel
+  - Updated packages/client/src/engine/RemotePlayerManager.ts:
+    - Added SpatialFootstepCallback type and setSpatialFootstepCallback() method
+    - Added footstepAccum tracking per RemotePlayer
+    - In updateInterpolation(): triggers footstep callback every 0.4s when remote player is moving
+    - Footstep accumulator resets when player stops moving
+  - Updated packages/client/src/App.ts:
+    - Added 'remoteShoot' network listener: plays playSpatialGunshot at shooter position
+    - Added updateListener() call in animate loop: updates audio listener to match camera position/yaw
+    - Wired remotePlayers.setSpatialFootstepCallback() to audioManager.playSpatialFootstep()
+  - TypeScript compiles cleanly for all 3 packages (shared, client, server)
+  - Client build succeeds (vite build produces dist/)
+- Spatial audio notes:
+  - PannerNode uses HRTF model for realistic left/right/front/back spatial perception
+  - Distance rolloff: inverse model with refDistance=3 (full volume within 3 units), maxDistance=80
+  - Listener position/orientation updated every frame from FPSController position + yaw
+  - Remote gunshots arrive via server broadcast 'remoteShoot' — only other players hear them
+  - Remote footsteps driven by position delta detection in RemotePlayerManager (0.4s interval)
+  - All spatial sounds routed through existing volume category gain nodes (effects/footsteps)
+  - No audio files needed — spatial sounds use same procedural synthesis approach as local sounds

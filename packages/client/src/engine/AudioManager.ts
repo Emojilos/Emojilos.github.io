@@ -487,6 +487,186 @@ export class AudioManager {
     osc.stop(t + 0.18);
   }
 
+  // ── Spatial (3D) audio ─────────────────────────────────
+
+  /**
+   * Update the listener position/orientation to match the camera.
+   * Must be called every frame from the render loop.
+   */
+  updateListener(x: number, y: number, z: number, yaw: number): void {
+    if (!this.ctx) return;
+    const listener = this.ctx.listener;
+
+    // Forward direction from yaw (looking into -Z rotated by yaw)
+    const fwdX = -Math.sin(yaw);
+    const fwdZ = -Math.cos(yaw);
+
+    if (listener.positionX) {
+      // Modern API
+      listener.positionX.value = x;
+      listener.positionY.value = y;
+      listener.positionZ.value = z;
+      listener.forwardX.value = fwdX;
+      listener.forwardY.value = 0;
+      listener.forwardZ.value = fwdZ;
+      listener.upX.value = 0;
+      listener.upY.value = 1;
+      listener.upZ.value = 0;
+    } else {
+      // Legacy API fallback
+      listener.setPosition(x, y, z);
+      listener.setOrientation(fwdX, 0, fwdZ, 0, 1, 0);
+    }
+  }
+
+  /** Create a PannerNode positioned at (x, y, z) with distance rolloff. */
+  private createPanner(x: number, y: number, z: number): PannerNode {
+    const ctx = this.ctx!;
+    const panner = ctx.createPanner();
+    panner.panningModel = 'HRTF';
+    panner.distanceModel = 'inverse';
+    panner.refDistance = 3;
+    panner.maxDistance = 80;
+    panner.rolloffFactor = 1.2;
+    panner.coneOuterGain = 0.5;
+    panner.positionX.value = x;
+    panner.positionY.value = y;
+    panner.positionZ.value = z;
+    return panner;
+  }
+
+  /** Play a 3D-positioned gunshot from a remote player. */
+  playSpatialGunshot(weaponId: WeaponId, x: number, y: number, z: number): void {
+    if (!this.ctx || !this.effectsGain) return;
+    const t = this.ctx.currentTime;
+    const panner = this.createPanner(x, y, z);
+    panner.connect(this.effectsGain);
+
+    // Use slightly quieter versions of the weapon sounds routed through panner
+    switch (weaponId) {
+      case 'deagle':
+        this.playSpatialDeagle(t, panner);
+        break;
+      case 'ssg08':
+        this.playSpatialSniper(t, panner);
+        break;
+      case 'mp9':
+        this.playSpatialSMG(t, panner);
+        break;
+    }
+  }
+
+  private playSpatialDeagle(t: number, dest: AudioNode): void {
+    const ctx = this.ctx!;
+    const noise = this.createNoiseBurst(0.08);
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.45, t);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(1800, t);
+    filter.frequency.exponentialRampToValueAtTime(350, t + 0.06);
+    filter.Q.value = 1.0;
+    noise.connect(filter);
+    filter.connect(noiseGain);
+    noiseGain.connect(dest);
+    noise.start(t);
+    noise.stop(t + 0.1);
+
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(140, t);
+    osc.frequency.exponentialRampToValueAtTime(35, t + 0.08);
+    const oscGain = ctx.createGain();
+    oscGain.gain.setValueAtTime(0.4, t);
+    oscGain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+    osc.connect(oscGain);
+    oscGain.connect(dest);
+    osc.start(t);
+    osc.stop(t + 0.12);
+  }
+
+  private playSpatialSniper(t: number, dest: AudioNode): void {
+    const ctx = this.ctx!;
+    const noise = this.createNoiseBurst(0.12);
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.55, t);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(2800, t);
+    filter.frequency.exponentialRampToValueAtTime(180, t + 0.1);
+    filter.Q.value = 0.7;
+    noise.connect(filter);
+    filter.connect(noiseGain);
+    noiseGain.connect(dest);
+    noise.start(t);
+    noise.stop(t + 0.15);
+
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(70, t);
+    osc.frequency.exponentialRampToValueAtTime(22, t + 0.15);
+    const oscGain = ctx.createGain();
+    oscGain.gain.setValueAtTime(0.55, t);
+    oscGain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+    osc.connect(oscGain);
+    oscGain.connect(dest);
+    osc.start(t);
+    osc.stop(t + 0.25);
+  }
+
+  private playSpatialSMG(t: number, dest: AudioNode): void {
+    const ctx = this.ctx!;
+    const noise = this.createNoiseBurst(0.04);
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.28, t);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(3500, t);
+    filter.frequency.exponentialRampToValueAtTime(900, t + 0.03);
+    filter.Q.value = 1.3;
+    noise.connect(filter);
+    filter.connect(noiseGain);
+    noiseGain.connect(dest);
+    noise.start(t);
+    noise.stop(t + 0.05);
+
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(180, t);
+    osc.frequency.exponentialRampToValueAtTime(70, t + 0.03);
+    const oscGain = ctx.createGain();
+    oscGain.gain.setValueAtTime(0.2, t);
+    oscGain.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
+    osc.connect(oscGain);
+    oscGain.connect(dest);
+    osc.start(t);
+    osc.stop(t + 0.06);
+  }
+
+  /** Play a 3D-positioned footstep from a remote player. */
+  playSpatialFootstep(x: number, y: number, z: number): void {
+    if (!this.ctx || !this.footstepsGain) return;
+    const t = this.ctx.currentTime;
+    const panner = this.createPanner(x, y, z);
+    panner.connect(this.footstepsGain);
+
+    const noise = this.createNoiseBurst(0.025);
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.15, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.035);
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 700 + Math.random() * 400;
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(panner);
+    noise.start(t);
+    noise.stop(t + 0.04);
+  }
+
   // ── Utility ─────────────────────────────────────────
 
   /** Create a white noise buffer source node. */
