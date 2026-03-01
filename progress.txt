@@ -703,3 +703,50 @@
   - Walking animation driven by position delta (not server velocity) — works with interpolation
   - Weapon swap disposes old material, builds new group from shared geometries
   - PLAYER_HEIGHT (1.8) respected: head at 1.55, torso at 1.10, legs at 0.45
+
+## Completed this session (continued 20)
+- TASK-041 (Audio system: AudioManager and SoundBank)
+  - Created packages/client/src/engine/AudioManager.ts:
+    - Web Audio API AudioContext with lazy init on first user gesture (click/keydown)
+    - Procedural sound synthesis (no audio files needed) — all sounds generated via oscillators, noise bursts, and filters
+    - Per-weapon gunshot sounds with distinct character:
+      - Deagle: punchy mid-range pistol (bandpass noise crack + sine thump)
+      - SSG-08: heavy sniper boom (sharp crack + deep bass + echo tail)
+      - MP9: short snappy SMG pop (high-freq noise + light thump)
+    - Reload sound: 3-part mechanical sequence (mag out click → mag in click → slide rack)
+    - Hitmarker ping: sine tone (800Hz body, 1200Hz + 1800Hz double for headshot)
+    - Damage taken: low impact thud (descending sine + noise burst)
+    - Death sound: heavy low thud with long decay
+    - Weapon switch click: short bandpass noise burst
+    - Footsteps: periodic noise taps with random pitch variation, triggered by movement + grounded state
+    - Round start horn: ascending square wave
+    - Countdown beep: short sine tone at 660Hz
+    - Volume categories: master, effects, footsteps — each with independent GainNode
+    - Volume settings saved to/loaded from localStorage (browserstrike_audio key)
+    - dispose() closes AudioContext
+  - Updated packages/client/src/engine/ShootingSystem.ts:
+    - Added onReloadStart callback for auto-reload audio notification
+    - setOnReloadStart() method to register the callback
+    - startReload() calls onReloadStart callback when reload begins (both manual R key and auto-reload)
+  - Updated packages/client/src/App.ts:
+    - AudioManager instantiated in App constructor, persists across game sessions
+    - AudioContext resume wired to click + keydown on document
+    - Gunshot sound: plays on successful shooting.fire() with current weaponId
+    - Reload sound: plays via onReloadStart callback (handles both manual and auto-reload)
+    - Hitmarker sound: plays on 'hit' network event (distinct for body vs headshot)
+    - Damage sound: plays on 'damaged' network event
+    - Weapon switch sound: plays in switchToWeapon()
+    - Footstep sound: called each frame in animate loop with isMoving + isGrounded + dt
+    - Countdown beep: plays on 'countdown' network event
+    - Round start horn: plays on 'roundStart' network event
+  - TypeScript compiles cleanly for client, server, and shared packages
+- Audio system notes:
+  - No audio files required — all sounds procedurally generated via Web Audio API
+  - AudioContext created lazily on first user gesture to comply with browser autoplay policy
+  - Footstep interval: 0.35s between steps, only when moving + grounded
+  - Volume defaults: master=0.5, effects=1.0, footsteps=0.6
+  - Noise bursts created as AudioBufferSource with random samples
+  - All gunshots use noise (crack) + oscillator (bass thump) layered with different filter params per weapon
+  - Sounds auto-schedule via ctx.currentTime — no manual timing needed
+  - Future TASK-042 (spatial audio) will add PannerNode for 3D positioned sounds from remote players
+  - Future TASK-044 (sound settings UI) will add slider controls for volume categories

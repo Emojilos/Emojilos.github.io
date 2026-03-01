@@ -67,6 +67,7 @@ export class ShootingSystem {
   // Callbacks to send messages to server
   private sendShoot: ((msg: ShootMessage) => void) | null = null;
   private sendReload: (() => void) | null = null;
+  private onReloadStart: (() => void) | null = null;
   private seq = 0;
 
   constructor(scene: THREE.Scene, weaponId: WeaponId = 'deagle') {
@@ -94,6 +95,10 @@ export class ShootingSystem {
     this.sendReload = cb;
   }
 
+  setOnReloadStart(cb: () => void): void {
+    this.onReloadStart = cb;
+  }
+
   /** Start a reload if not already reloading and magazine is not full. */
   startReload(): boolean {
     if (this._isReloading) return false;
@@ -104,6 +109,8 @@ export class ShootingSystem {
 
     // Notify server
     this.sendReload?.();
+    // Audio callback (for auto-reload triggered internally)
+    this.onReloadStart?.();
 
     return true;
   }

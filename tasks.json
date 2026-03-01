@@ -714,7 +714,7 @@
         "Шаг 4: Изменить master volume → все звуки тише"
       ],
       "dependencies": ["TASK-014"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-042",

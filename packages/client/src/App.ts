@@ -15,6 +15,7 @@ import { DamageEffects } from './ui/DamageEffects';
 import { KillFeed } from './ui/KillFeed';
 import { Scoreboard } from './ui/Scoreboard';
 import type { ScoreboardState, ScoreboardPlayer } from './ui/Scoreboard';
+import { AudioManager } from './engine/AudioManager';
 import { PLAYER_HP, ROUND_TIME_LIMIT, DEFAULT_WEAPON, WEAPON_IDS } from '@browserstrike/shared';
 import type { InputMessage, ShootMessage, Team, GameMode, MapId, RoundsToWin, WeaponId, KillEvent, RoundEndEvent, MatchEndEvent } from '@browserstrike/shared';
 
@@ -52,6 +53,7 @@ export class App {
   private damageEffects: DamageEffects | null = null;
   private killFeed: KillFeed | null = null;
   private scoreboard: Scoreboard | null = null;
+  private audioManager: AudioManager;
 
   // Network — always available
   readonly network: NetworkManager;
@@ -70,6 +72,14 @@ export class App {
     this.canvas = document.getElementById('game') as HTMLCanvasElement;
     this.uiRoot = document.getElementById('ui-root') as HTMLElement;
     this.network = new NetworkManager();
+    this.audioManager = new AudioManager();
+
+    // Resume AudioContext on first user interaction
+    const resumeAudio = () => {
+      this.audioManager.tryResume();
+    };
+    document.addEventListener('click', resumeAudio, { once: false });
+    document.addEventListener('keydown', resumeAudio, { once: false });
 
     this.createScreens();
     this.showScreen(AppState.MENU);
@@ -336,6 +346,9 @@ export class App {
     this.shootingSystem.setReloadCallback(() => {
       this.network.send('reload', {});
     });
+    this.shootingSystem.setOnReloadStart(() => {
+      this.audioManager.playReload();
+    });
 
     // Game HUD — crosshair, HP, ammo, score, timer
     const playingScreen = this.screens.get(AppState.PLAYING);
@@ -466,6 +479,7 @@ export class App {
     // Round events from server
     this.network.onMessage('countdown', (data: { seconds: number }) => {
       console.log(`Countdown: ${data.seconds}s`);
+      this.audioManager.playCountdownBeep();
       // Clear prediction buffer on respawn — server resets positions
       this.prediction?.clear();
       // Clear interpolation buffers — remote players teleport to spawn points
@@ -476,6 +490,7 @@ export class App {
 
     this.network.onMessage('roundStart', (data: { round: number }) => {
       console.log(`Round ${data.round} started!`);
+      this.audioManager.playRoundStart();
     });
 
     this.network.onMessage('roundEnd', (data: RoundEndEvent) => {
@@ -489,6 +504,7 @@ export class App {
     // Hit confirmation — show hitmarker when we hit an enemy
     this.network.onMessage('hit', (data: { damage: number; isHeadshot: boolean }) => {
       this.damageEffects?.showHitmarker(data.isHeadshot);
+      this.audioManager.playHitmarker(data.isHeadshot);
     });
 
     // Kill event — add to kill feed
@@ -505,6 +521,7 @@ export class App {
     this.network.onMessage('damaged', (data: { damage: number; isHeadshot: boolean; direction: { x: number; y: number; z: number } }) => {
       const yaw = this.fpsController?.yaw ?? 0;
       this.damageEffects?.showDamage(data.damage, data.direction.x, data.direction.z, yaw);
+      this.audioManager.playDamage();
     });
   }
 
@@ -838,6 +855,7 @@ export class App {
     this.shootingSystem!.switchWeapon(weaponId);
     this.weaponModel!.switchWeapon(weaponId);
     this.network.send('selectWeapon', { weapon: weaponId });
+    this.audioManager.playWeaponSwitch();
   }
 
   private animate = (now: number): void => {
@@ -859,7 +877,7 @@ export class App {
         this.handleWeaponSwitch(fps);
       }
 
-      // Handle R key for manual reload
+      // Handle R key for manual reload (audio played via onReloadStart callback)
       if (fps.pointerLock.locked && fps.input.consumeReload()) {
         shooting.startReload();
       }
@@ -869,11 +887,17 @@ export class App {
         const fired = weapon.tryFire(fps.input.mouseDown, now);
         if (fired) {
           const isMoving = fps.input.keys.w || fps.input.keys.a || fps.input.keys.s || fps.input.keys.d;
-          shooting.fire(fps.position, fps.yaw, fps.pitch, isMoving);
+          if (shooting.fire(fps.position, fps.yaw, fps.pitch, isMoving)) {
+            this.audioManager.playGunshot(shooting.getWeaponId());
+          }
         }
       }
 
       fps.update(dt);
+
+      // Footstep audio
+      const isMoving = fps.input.keys.w || fps.input.keys.a || fps.input.keys.s || fps.input.keys.d;
+      this.audioManager.playFootstep(isMoving, fps.getPhysicsState().isGrounded, dt);
     } else {
       // While spectating, consume inputs without acting on them
       fps.input.consumeMouseDelta();
