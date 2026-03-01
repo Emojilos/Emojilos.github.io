@@ -9,6 +9,8 @@ export {
 
 export { WEAPONS, DEFAULT_WEAPON, WEAPON_IDS } from './constants/weapons.js';
 export { MAPS, MAP_IDS, DEFAULT_MAP } from './constants/maps.js';
+export { getMapCollisionData, WAREHOUSE_DATA } from './constants/mapCollisions.js';
+export type { CollisionBox, VisualBox, MapCollisionData } from './constants/mapCollisions.js';
 
 // Types
 export type {

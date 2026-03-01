@@ -608,7 +608,7 @@
         "Шаг 4: Смена mapId в настройках → загрузка другой карты (или fallback)"
       ],
       "dependencies": ["TASK-026"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-037",

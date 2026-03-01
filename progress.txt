@@ -783,3 +783,42 @@
   - Health check at /health for container orchestration (Docker, Railway, Fly.io, etc.)
   - Dockerfile tested: builds shared+server, production runtime with minimal image
   - netlify.toml: SPA redirect ensures client-side routing works on Netlify
+
+## Completed this session (continued 22)
+- TASK-036 (MapLoader and MapRenderer: map loading system)
+  - Created packages/shared/src/constants/mapCollisions.ts:
+    - CollisionBox interface: center (cx/cy/cz) + half-extents (hx/hy/hz)
+    - VisualBox extends CollisionBox with material hint ('wall' | 'floor' | 'crate' | 'crate_dark')
+    - MapCollisionData interface: id, collisions[], visuals[], floorSize
+    - WAREHOUSE_DATA: all 16 visual/collision boxes matching original MapBuilder exactly
+    - getMapCollisionData(mapId): returns collision data with Warehouse fallback for unknown maps
+    - Exported from packages/shared/src/index.ts
+  - Created packages/client/src/engine/MapLoader.ts:
+    - loadMap(mapId): sync — builds procedural map from shared collision data
+    - loadMapAsync(mapId): async — tries GLTF first, falls back to procedural
+    - buildProceduralMap(data): creates Three.js Group with floor + visual boxes using materials
+    - buildCollisionWorldFromData(boxes): builds CollisionWorld from CollisionBox[]
+    - extractCollisionsFromGLTF(scene): extracts collision boxes from meshes with "_collision" suffix
+    - GLTF_PATHS registry: empty now, ready for future GLTF map models
+    - Shared MATERIALS object for procedural rendering (floor, wall, crate, crate_dark)
+    - MapLoadResult interface: { root: THREE.Group, collisionWorld: CollisionWorld }
+  - Refactored packages/server/src/physics/mapCollisions.ts:
+    - Replaced 50 lines of hardcoded Warehouse collision boxes with 5-line function
+    - buildMapCollisions(mapId) now uses getMapCollisionData() from shared package
+    - Server and client use identical collision data source (single source of truth)
+  - Updated packages/client/src/App.ts:
+    - Replaced buildWarehouseMap(scene) with loadMap(mapId) from MapLoader
+    - Added getMapId() helper: reads mapId from Colyseus state.settings
+    - Map root group added to scene, collisionWorld extracted from MapLoadResult
+    - Imported DEFAULT_MAP from shared for fallback
+  - TypeScript compiles cleanly for all 3 packages (shared, client, server)
+  - Client build succeeds (vite build produces dist/)
+- MapLoader notes:
+  - Single source of truth for collision data: packages/shared/src/constants/mapCollisions.ts
+  - Server no longer has duplicated collision box definitions
+  - Map selection via GameState.settings.mapId works end-to-end (lobby → server → client)
+  - GLTF support ready but no models yet (GLTF_PATHS empty, future TASK-037/038/039)
+  - Procedural fallback generates identical visuals to old MapBuilder approach
+  - loadMap() is sync for procedural maps; loadMapAsync() for future GLTF loading
+  - Collision extraction from GLTF uses naming convention: meshes ending in "_collision"
+  - Unknown mapId falls back to Warehouse data (graceful degradation)

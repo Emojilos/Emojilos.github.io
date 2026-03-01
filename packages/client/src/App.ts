@@ -1,5 +1,5 @@
 import { SceneManager } from './engine/SceneManager';
-import { buildWarehouseMap } from './engine/MapBuilder';
+import { loadMap } from './engine/MapLoader';
 import { FPSController } from './engine/FPSController';
 import { WeaponModel } from './engine/WeaponModel';
 import { ShootingSystem } from './engine/ShootingSystem';
@@ -16,7 +16,7 @@ import { KillFeed } from './ui/KillFeed';
 import { Scoreboard } from './ui/Scoreboard';
 import type { ScoreboardState, ScoreboardPlayer } from './ui/Scoreboard';
 import { AudioManager } from './engine/AudioManager';
-import { PLAYER_HP, ROUND_TIME_LIMIT, DEFAULT_WEAPON, WEAPON_IDS } from '@browserstrike/shared';
+import { PLAYER_HP, ROUND_TIME_LIMIT, DEFAULT_WEAPON, DEFAULT_MAP, WEAPON_IDS } from '@browserstrike/shared';
 import type { InputMessage, ShootMessage, Team, GameMode, MapId, RoundsToWin, WeaponId, KillEvent, RoundEndEvent, MatchEndEvent } from '@browserstrike/shared';
 
 export enum AppState {
@@ -325,7 +325,12 @@ export class App {
 
   private startGameLoop(): void {
     this.sceneManager = new SceneManager(this.canvas);
-    const collisionWorld = buildWarehouseMap(this.sceneManager.scene);
+
+    // Determine map from server state (defaults to warehouse)
+    const mapId = this.getMapId();
+    const mapResult = loadMap(mapId);
+    this.sceneManager.scene.add(mapResult.root);
+    const collisionWorld = mapResult.collisionWorld;
 
     this.fpsController = new FPSController(this.sceneManager.camera, this.canvas);
     this.fpsController.setCollisionWorld(collisionWorld);
@@ -645,7 +650,16 @@ export class App {
     this.network.send('input', msg);
   }
 
-  // ── HUD data helpers ────────────────────────────────────
+  // ── Data helpers ────────────────────────────────────────
+
+  /** Get the current mapId from server state. */
+  private getMapId(): MapId {
+    if (!this.network.connected) return DEFAULT_MAP;
+    const room = this.network.currentRoom;
+    if (!room) return DEFAULT_MAP;
+    const state = room.state as { settings?: { mapId?: string } };
+    return (state.settings?.mapId as MapId) || DEFAULT_MAP;
+  }
 
   private getLocalPlayerHP(): number {
     if (!this.network.connected) return PLAYER_HP;
