@@ -1,5 +1,5 @@
 import { SceneManager } from './engine/SceneManager';
-import { loadMap } from './engine/MapLoader';
+import { loadMap, loadMapAsync } from './engine/MapLoader';
 import { FPSController } from './engine/FPSController';
 import { WeaponModel } from './engine/WeaponModel';
 import { ShootingSystem } from './engine/ShootingSystem';
@@ -257,7 +257,9 @@ export class App {
 
     if (state === AppState.PLAYING) {
       this.canvas.style.display = 'block';
-      this.startGameLoop();
+      this.startGameLoop().catch((err) => {
+        console.error('Failed to start game loop:', err);
+      });
     } else {
       this.canvas.style.display = 'none';
     }
@@ -350,7 +352,7 @@ export class App {
 
   // ── Game loop ──────────────────────────────────────────
 
-  private startGameLoop(): void {
+  private async startGameLoop(): Promise<void> {
     this.sceneManager = new SceneManager(this.canvas);
 
     // Apply quality settings to renderer
@@ -358,7 +360,13 @@ export class App {
 
     // Determine map from server state (defaults to warehouse)
     const mapId = this.getMapId();
-    const mapResult = loadMap(mapId);
+    let mapResult;
+    try {
+      mapResult = await loadMapAsync(mapId);
+    } catch (err) {
+      console.warn('GLTF load failed, falling back to procedural map:', err);
+      mapResult = loadMap(mapId);
+    }
     this.sceneManager.scene.add(mapResult.root);
     const collisionWorld = mapResult.collisionWorld;
 

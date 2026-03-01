@@ -1005,3 +1005,42 @@
   - Gap uses clip-path polygon to cut center from arms (avoids splitting into 4 separate elements)
   - Preview renders inline HTML in .cs-preview div with absolute-positioned arm divs
   - CrosshairConfig interface exported for potential future use
+
+## Completed this session (continued 28)
+- TASK-037 (Warehouse GLTF map — replacing primitives)
+  - Created scripts/generate-warehouse.mjs:
+    - Node.js script using Three.js + GLTFExporter to generate warehouse.glb
+    - Polyfills FileReader/Blob/document for Node.js compatibility with GLTFExporter
+    - Enhanced visual geometry vs plain boxes:
+      - Floor with subtle grid lines (warehouse markings)
+      - Outer walls with top/bottom trim strips
+      - Interior walls with distinct material
+      - Crates with horizontal/vertical straps and lid edges
+      - Roof beams spanning the ceiling every 8 units
+      - Ceiling plane
+      - 8 metal support pillars (6-sided cylinders) at strategic positions
+      - 5 overhead light housings with emissive light panels
+      - Spawn point markers (ring decals on floor, blue for A, red-brown for B)
+    - Collision meshes with "_collision" suffix for all walls and crates
+    - 1178 triangles total (well under 10k budget)
+    - Output: 145KB GLB at packages/client/public/models/maps/warehouse.glb
+  - Updated packages/client/src/engine/MapLoader.ts:
+    - Added warehouse to GLTF_PATHS: '/models/maps/warehouse.glb'
+    - loadMapAsync() now loads warehouse as GLTF instead of procedural fallback
+  - Updated packages/client/src/App.ts:
+    - startGameLoop() now async, uses loadMapAsync() with try/catch fallback to loadMap()
+    - enterState(PLAYING) calls startGameLoop() with .catch() error handler
+    - Imported loadMapAsync alongside loadMap
+  - Updated package.json:
+    - Added "generate:maps" script: "node scripts/generate-warehouse.mjs"
+  - TypeScript compiles cleanly for client and server
+  - Client vite build succeeds, warehouse.glb included in dist/models/maps/
+- Warehouse GLTF notes:
+  - GLB generation uses Three.js scene → GLTFExporter in Node.js with browser API polyfills
+  - Collision meshes use exact same dimensions as shared/mapCollisions.ts WAREHOUSE_DATA
+  - MapLoader extracts collisions from "_collision" named meshes via extractCollisionsFromGLTF()
+  - If GLTF load fails at runtime, falls back gracefully to procedural map (same collision data)
+  - Spawn points remain at shared/constants/maps.ts positions (-16,0,-16) and (16,0,16)
+  - Visual enhancements: trim, straps, pillars, beams, lights — all low-poly primitives
+  - To regenerate: npm run generate:maps
+  - Future maps (TASK-038 Dust Alley, TASK-039 Office) can follow the same script pattern
