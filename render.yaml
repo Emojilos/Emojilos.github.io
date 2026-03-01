@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: browserstrike-server
+    env: node
+    buildCommand: npm ci && npm run build:shared && npm run build:server
+    startCommand: node packages/server/dist/index.js
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: CORS_ORIGIN
+        value: https://emojilos.github.io

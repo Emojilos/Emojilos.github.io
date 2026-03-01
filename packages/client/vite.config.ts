@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import path from 'path';
 
 export default defineConfig({
+  base: process.env.GITHUB_PAGES ? '/BrowserStrike/' : '/',
   resolve: {
     alias: {
       '@browserstrike/shared': path.resolve(__dirname, '../shared/src'),

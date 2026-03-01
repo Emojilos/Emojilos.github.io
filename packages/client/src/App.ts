@@ -183,7 +183,11 @@ export class App {
         }
       },
       onLeave: async () => {
-        await this.network.leave();
+        try {
+          await this.network.leave();
+        } catch (err) {
+          console.error('Leave failed:', err);
+        }
         this.setState(AppState.MENU);
       },
     });
@@ -292,6 +296,15 @@ export class App {
       if (room) {
         this.lobbyOnStateChange = () => this.syncLobbyState();
         room.onStateChange(this.lobbyOnStateChange);
+        // Handle unexpected disconnect while in lobby
+        room.onLeave((code) => {
+          if (this.state === AppState.LOBBY && code >= 1006) {
+            console.warn(`Lobby: disconnected (code ${code}), returning to menu`);
+            this.network.clearRoom();
+            this.setState(AppState.MENU);
+            this.menuScreen?.showError('Disconnected from server');
+          }
+        });
       }
       // Fallback polling in case onStateChange doesn't fire
       this.lobbyStateInterval = window.setInterval(() => this.syncLobbyState(), 500);

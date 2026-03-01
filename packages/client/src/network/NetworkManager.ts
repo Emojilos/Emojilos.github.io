@@ -119,6 +119,11 @@ export class NetworkManager {
     return this.room !== null;
   }
 
+  /** Clear the room reference without sending a leave message (e.g. after unexpected disconnect). */
+  clearRoom(): void {
+    this.room = null;
+  }
+
   /** Get the underlying Colyseus room (for advanced state access). */
   get currentRoom(): Room | null {
     return this.room;
