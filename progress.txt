@@ -1043,4 +1043,43 @@
   - Spawn points remain at shared/constants/maps.ts positions (-16,0,-16) and (16,0,16)
   - Visual enhancements: trim, straps, pillars, beams, lights — all low-poly primitives
   - To regenerate: npm run generate:maps
-  - Future maps (TASK-038 Dust Alley, TASK-039 Office) can follow the same script pattern
+  - Future maps (TASK-039 Office) can follow the same script pattern
+
+## Completed this session (continued 29)
+- TASK-038 (Dust Alley GLTF map)
+  - Added collision data to packages/shared/src/constants/mapCollisions.ts:
+    - DUST_ALLEY_VISUALS: 26 visual/collision boxes defining the desert map layout
+    - DUST_ALLEY_DATA exported as MapCollisionData, registered in MAP_COLLISION_DATA
+    - Higher walls (5 units vs 4 for warehouse) for desert feel
+    - 3 routes: North alley (z=-10 to -14), Central open square (z=-4 to +4), South alley (z=+10 to +14)
+    - Asymmetric layout: north alley gaps offset east, south alley gaps offset west
+    - Cover crates at alleys, central square, and spawn areas
+    - Outer walls, interior corridor walls creating the 3 routes
+  - Created scripts/generate-dust-alley.mjs:
+    - Desert/sandstone theme materials (sandy tan colors: 0xc2a060 floor, 0xd4b878 walls)
+    - Sandstone outer walls with top parapets and base trims
+    - Interior corridor walls with desert trim
+    - 6 decorative arches at alley entrances and central square (pillar + lintel + keystone)
+    - Crates with straps and lids (same pattern as warehouse)
+    - 3 awnings (colored fabric) over alley sections
+    - 6 clay pots as decorative details at corners and passages
+    - Partial roof sections over north and south alleys
+    - Sandy floor patches for visual variety
+    - Spawn markers (blue ring for A at -16,0,0 / brown ring for B at 16,0,0)
+    - 1598 triangles total (well under 10k budget)
+    - Output: 187.8 KB GLB at packages/client/public/models/maps/dust_alley.glb
+  - Updated packages/client/src/engine/MapLoader.ts:
+    - Added dust_alley to GLTF_PATHS: '/models/maps/dust_alley.glb'
+  - Updated package.json:
+    - generate:maps script now runs both warehouse and dust_alley generators
+  - Spawn points already defined in shared/constants/maps.ts: A at (-16,0,0), B at (16,0,0)
+  - TypeScript compiles cleanly for shared, client, and server packages
+  - Client vite build succeeds, dust_alley.glb included in dist
+- Dust Alley map notes:
+  - Desert theme: sandstone walls, arches, clay pots, awnings, sandy floor
+  - 3 routes between spawns: north alley (narrow), central square (open), south alley (offset)
+  - Asymmetric: each route has different gap positions forcing different approach angles
+  - Spawns face each other on x-axis (west vs east) unlike warehouse diagonal spawns
+  - Collision data shared between client and server via mapCollisions.ts
+  - GLTF loaded by MapLoader with _collision mesh extraction; procedural fallback if load fails
+  - To regenerate: node scripts/generate-dust-alley.mjs (or npm run generate:maps for all)

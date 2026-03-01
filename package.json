@@ -15,6 +15,6 @@
     "build:server": "npm run build -w packages/server",
     "build": "npm run build:shared && npm run build:client && npm run build:server",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "generate:maps": "node scripts/generate-warehouse.mjs"
+    "generate:maps": "node scripts/generate-warehouse.mjs && node scripts/generate-dust-alley.mjs"
   }
 }

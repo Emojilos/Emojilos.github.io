@@ -650,7 +650,7 @@
         "Шаг 4: Spawn points — игроки не видят друг друга при спавне"
       ],
       "dependencies": ["TASK-036"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-039",

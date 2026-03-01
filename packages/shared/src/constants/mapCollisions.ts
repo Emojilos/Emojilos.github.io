@@ -85,10 +85,78 @@ export const WAREHOUSE_DATA: MapCollisionData = {
   floorSize: { width: 40, depth: 40 },
 };
 
+// ── Dust Alley ───────────────────────────────────────────
+
+const DA_WALL_HEIGHT = 5;
+const DA_WALL_T = 0.4;
+
+function daWall(w: number, h: number, d: number, x: number, y: number, z: number): VisualBox {
+  return { cx: x, cy: y, cz: z, hx: w / 2, hy: h / 2, hz: d / 2, material: 'wall' };
+}
+
+function daCrate(w: number, h: number, d: number, x: number, z: number, dark = false): VisualBox {
+  return { cx: x, cy: h / 2, cz: z, hx: w / 2, hy: h / 2, hz: d / 2, material: dark ? 'crate_dark' : 'crate' };
+}
+
+const DUST_ALLEY_VISUALS: VisualBox[] = [
+  // Outer walls (40×40 arena, taller for desert feel)
+  daWall(40, DA_WALL_HEIGHT, DA_WALL_T, 0, DA_WALL_HEIGHT / 2, -20),   // North
+  daWall(40, DA_WALL_HEIGHT, DA_WALL_T, 0, DA_WALL_HEIGHT / 2, 20),    // South
+  daWall(DA_WALL_T, DA_WALL_HEIGHT, 40, -20, DA_WALL_HEIGHT / 2, 0),   // West
+  daWall(DA_WALL_T, DA_WALL_HEIGHT, 40, 20, DA_WALL_HEIGHT / 2, 0),    // East
+
+  // ── Route 1 (North alley) ─────────────────────────────
+  // North corridor walls creating a narrow alley at z = -12
+  daWall(14, DA_WALL_HEIGHT, DA_WALL_T, -6, DA_WALL_HEIGHT / 2, -10),  // North alley south wall (west)
+  daWall(10, DA_WALL_HEIGHT, DA_WALL_T, 8, DA_WALL_HEIGHT / 2, -10),   // North alley south wall (east)
+  daWall(14, DA_WALL_HEIGHT, DA_WALL_T, -6, DA_WALL_HEIGHT / 2, -14),  // North alley north wall (west)
+  daWall(6, DA_WALL_HEIGHT, DA_WALL_T, 10, DA_WALL_HEIGHT / 2, -14),   // North alley north wall (east)
+
+  // ── Route 2 (Central open square) ─────────────────────
+  // Low walls around center square creating partial cover
+  daWall(DA_WALL_T, DA_WALL_HEIGHT, 8, -6, DA_WALL_HEIGHT / 2, 0),     // West side of square
+  daWall(DA_WALL_T, DA_WALL_HEIGHT, 8, 6, DA_WALL_HEIGHT / 2, 0),      // East side of square
+
+  // ── Route 3 (South alley) ─────────────────────────────
+  // South corridor walls creating offset alley at z = +12
+  daWall(10, DA_WALL_HEIGHT, DA_WALL_T, -8, DA_WALL_HEIGHT / 2, 10),   // South alley north wall (west)
+  daWall(14, DA_WALL_HEIGHT, DA_WALL_T, 6, DA_WALL_HEIGHT / 2, 10),    // South alley north wall (east)
+  daWall(6, DA_WALL_HEIGHT, DA_WALL_T, -10, DA_WALL_HEIGHT / 2, 14),   // South alley south wall (west)
+  daWall(14, DA_WALL_HEIGHT, DA_WALL_T, 6, DA_WALL_HEIGHT / 2, 14),    // South alley south wall (east)
+
+  // ── Cover objects (crates, market stalls) ──────────────
+  // North alley cover
+  daCrate(1.5, 1.2, 1.5, -4, -12),
+  daCrate(1, 1.5, 1, 5, -12, true),
+
+  // Central square cover
+  daCrate(2, 1.0, 2, 0, 0),                                             // Center crate
+  daCrate(1.5, 1.8, 1.5, -3, 2, true),                                  // Left of center
+  daCrate(1.5, 1.8, 1.5, 3, -2),                                        // Right of center
+
+  // South alley cover
+  daCrate(1, 1.2, 2, -4, 12, true),
+  daCrate(1.5, 1.0, 1.5, 4, 12),
+
+  // Spawn area cover
+  daCrate(2, 1.5, 1, -14, -5),                                          // Team A spawn area
+  daCrate(1.5, 1.2, 2, -16, 5, true),
+  daCrate(2, 1.5, 1, 14, 5, true),                                      // Team B spawn area
+  daCrate(1.5, 1.2, 2, 16, -5),
+];
+
+export const DUST_ALLEY_DATA: MapCollisionData = {
+  id: 'dust_alley',
+  collisions: DUST_ALLEY_VISUALS,
+  visuals: DUST_ALLEY_VISUALS,
+  floorSize: { width: 40, depth: 40 },
+};
+
 // ── Map registry ─────────────────────────────────────────
 
 const MAP_COLLISION_DATA: Record<string, MapCollisionData> = {
   warehouse: WAREHOUSE_DATA,
+  dust_alley: DUST_ALLEY_DATA,
 };
 
 /**

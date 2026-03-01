@@ -119,7 +119,7 @@ const gltfLoader = new GLTFLoader();
 // Map of known GLTF paths (populated as maps get GLTF models)
 const GLTF_PATHS: Partial<Record<MapId, string>> = {
   warehouse: '/models/maps/warehouse.glb',
-  // Future: dust_alley: '/models/maps/dust_alley.glb',
+  dust_alley: '/models/maps/dust_alley.glb',
   // Future: office: '/models/maps/office.glb',
   // Future: trainyard: '/models/maps/trainyard.glb',
 };
