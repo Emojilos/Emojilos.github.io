@@ -797,7 +797,7 @@
         "Шаг 4: Performance tab: нет частых GC пиков"
       ],
       "dependencies": ["TASK-019"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-046",

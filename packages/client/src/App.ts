@@ -17,6 +17,7 @@ import { Scoreboard } from './ui/Scoreboard';
 import type { ScoreboardState, ScoreboardPlayer } from './ui/Scoreboard';
 import { DebugOverlay } from './ui/DebugOverlay';
 import { AudioManager } from './engine/AudioManager';
+import { QualitySettings } from './engine/QualitySettings';
 import { PLAYER_HP, ROUND_TIME_LIMIT, DEFAULT_WEAPON, DEFAULT_MAP, WEAPON_IDS } from '@browserstrike/shared';
 import type { InputMessage, ShootMessage, Team, GameMode, MapId, RoundsToWin, WeaponId, KillEvent, RoundEndEvent, MatchEndEvent } from '@browserstrike/shared';
 
@@ -56,6 +57,7 @@ export class App {
   private scoreboard: Scoreboard | null = null;
   private debugOverlay: DebugOverlay | null = null;
   private audioManager: AudioManager;
+  private qualitySettings: QualitySettings;
 
   // FPS tracking
   private fpsFrameCount = 0;
@@ -84,6 +86,7 @@ export class App {
     this.uiRoot = document.getElementById('ui-root') as HTMLElement;
     this.network = new NetworkManager();
     this.audioManager = new AudioManager();
+    this.qualitySettings = new QualitySettings();
 
     // Resume AudioContext on first user interaction
     const resumeAudio = () => {
@@ -336,6 +339,9 @@ export class App {
 
   private startGameLoop(): void {
     this.sceneManager = new SceneManager(this.canvas);
+
+    // Apply quality settings to renderer
+    this.qualitySettings.applyToRenderer(this.sceneManager.renderer, this.sceneManager.scene);
 
     // Determine map from server state (defaults to warehouse)
     const mapId = this.getMapId();

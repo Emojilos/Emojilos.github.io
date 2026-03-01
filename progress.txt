@@ -891,3 +891,39 @@
   - Remote footsteps driven by position delta detection in RemotePlayerManager (0.4s interval)
   - All spatial sounds routed through existing volume category gain nodes (effects/footsteps)
   - No audio files needed — spatial sounds use same procedural synthesis approach as local sounds
+
+## Completed this session (continued 25)
+- TASK-045 (Object pooling and performance optimization)
+  - Created packages/client/src/engine/ObjectPool.ts:
+    - Generic ObjectPool<T> class with acquire()/release() pattern
+    - Constructor accepts create(), reset() callbacks + optional preAllocate count
+    - dispose(cleanup?) for full teardown of pooled objects
+    - size getter for monitoring pool utilization
+  - Refactored packages/client/src/engine/ShootingSystem.ts:
+    - Tracer pooling: pre-allocated pool of MAX_TRACERS=32 Line objects
+    - Tracers reused via tracerPool.acquire()/release() instead of new BufferGeometry+material per shot
+    - Tracer cleanup uses write-index compaction instead of splice() (O(n) vs O(n²))
+    - Tracer geometry pool: separate pool for BufferGeometry reuse
+    - Decal material sharing: all decals now use single shared MeshBasicMaterial (no more clone per decal)
+    - Decal ring buffer reuses existing mesh positions instead of remove+dispose+create cycle
+    - Proper dispose() cleans up both active tracers and pooled objects
+  - Created packages/client/src/engine/QualitySettings.ts:
+    - Three quality levels: low, medium, high
+    - Per-level config: shadowMapSize, shadowsEnabled, pixelRatio, fog range, maxDecals, maxTracers
+    - Low: no shadows, pixelRatio=1, shorter fog, 16 decals, 8 tracers
+    - Medium: 1024 shadows, capped pixelRatio 1.5, 32 decals, 16 tracers
+    - High: 2048 shadows, pixelRatio up to 2, 64 decals, 32 tracers (default)
+    - applyToRenderer(): updates shadows, pixel ratio, fog, shadow map sizes
+    - Settings persisted to localStorage (browserstrike_quality key)
+  - Updated packages/client/src/App.ts:
+    - QualitySettings instantiated in constructor, persists across game sessions
+    - applyToRenderer() called in startGameLoop() after SceneManager creation
+  - TypeScript compiles cleanly for all 3 packages
+  - Client vite build succeeds
+- Object pooling notes:
+  - Tracers are the main GC pressure source — MP9 at 10 shots/sec creates 10 Lines + geometries per second
+  - With pooling, Line objects are pre-allocated and reused (no GC pressure during combat)
+  - Decals were already ring-buffered but cloned material per decal — now share single material
+  - Muzzle flash is a single persistent PointLight (already efficient, no pooling needed)
+  - Quality settings accessible via app.qualitySettings for future UI integration (TASK-044 related)
+  - Write-index compaction for active tracer list avoids splice() overhead during rapid fire

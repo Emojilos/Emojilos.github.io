@@ -1,10 +1,12 @@
 import * as THREE from 'three';
 import { WEAPONS, EYE_HEIGHT } from '@browserstrike/shared';
 import type { WeaponId, ShootMessage } from '@browserstrike/shared';
+import { ObjectPool } from './ObjectPool';
 
 const MUZZLE_FLASH_DURATION = 0.05; // 50ms
 const TRACER_FADE_DURATION = 0.15; // 150ms
 const MAX_DECALS = 64;
+const MAX_TRACERS = 32;
 const DECAL_OFFSET = 0.01; // slight offset from wall surface
 
 interface Tracer {
@@ -29,15 +31,12 @@ export class ShootingSystem {
   private readonly muzzleLight: THREE.PointLight;
   private muzzleFlashTimer = 0;
 
-  // Tracers (active list)
-  private readonly tracers: Tracer[] = [];
-  private readonly tracerMaterial = new THREE.LineBasicMaterial({
-    color: 0xffdd44,
-    transparent: true,
-    opacity: 1,
-  });
+  // Tracers — pooled to avoid GC spikes during rapid fire
+  private readonly activeTracers: Tracer[] = [];
+  private readonly tracerPool: ObjectPool<Tracer>;
+  private readonly tracerGeomPool: ObjectPool<THREE.BufferGeometry>;
 
-  // Decals (ring buffer)
+  // Decals (ring buffer with shared material)
   private readonly decalMeshes: THREE.Mesh[] = [];
   private decalIndex = 0;
   private readonly decalGeometry = new THREE.CircleGeometry(0.03, 8);
@@ -85,6 +84,33 @@ export class ShootingSystem {
     // Muzzle flash light (initially off)
     this.muzzleLight = new THREE.PointLight(0xffaa00, 0, 8);
     this.scene.add(this.muzzleLight);
+
+    // Tracer geometry pool — reuse BufferGeometry objects
+    this.tracerGeomPool = new ObjectPool<THREE.BufferGeometry>(
+      () => new THREE.BufferGeometry(),
+      (geom) => { /* reset happens on setFromPoints */ },
+      MAX_TRACERS,
+    );
+
+    // Tracer pool — pre-allocate Line objects with shared material
+    const tracerMat = new THREE.LineBasicMaterial({ color: 0xffdd44, transparent: true, opacity: 1 });
+    this.tracerPool = new ObjectPool<Tracer>(
+      () => {
+        const geom = this.tracerGeomPool.acquire();
+        const mat = tracerMat.clone();
+        const line = new THREE.Line(geom, mat);
+        line.userData.isEffect = true;
+        line.frustumCulled = false;
+        return { line, age: 0, maxAge: TRACER_FADE_DURATION };
+      },
+      (t) => {
+        t.age = 0;
+        (t.line.material as THREE.LineBasicMaterial).opacity = 1;
+        t.line.visible = false;
+      },
+      MAX_TRACERS,
+    );
+    tracerMat.dispose(); // only used as template for clones
   }
 
   setSendCallback(cb: (msg: ShootMessage) => void): void {
@@ -255,34 +281,33 @@ export class ShootingSystem {
   }
 
   private createTracer(from: THREE.Vector3, to: THREE.Vector3): void {
-    const geometry = new THREE.BufferGeometry().setFromPoints([from, to]);
-    const material = this.tracerMaterial.clone();
-    const line = new THREE.Line(geometry, material);
-    line.userData.isEffect = true;
-    this.scene.add(line);
+    const tracer = this.tracerPool.acquire();
+    tracer.line.geometry.setFromPoints([from, to]);
+    tracer.line.visible = true;
+    tracer.age = 0;
+    (tracer.line.material as THREE.LineBasicMaterial).opacity = 1;
 
-    this.tracers.push({ line, age: 0, maxAge: TRACER_FADE_DURATION });
+    if (!tracer.line.parent) {
+      this.scene.add(tracer.line);
+    }
+
+    this.activeTracers.push(tracer);
   }
 
   private createDecal(point: THREE.Vector3, normal: THREE.Vector3): void {
-    const mesh = new THREE.Mesh(this.decalGeometry, this.decalMaterial.clone());
-    mesh.userData.isEffect = true;
-
-    // Position slightly off the surface
-    mesh.position.copy(point).addScaledVector(normal, DECAL_OFFSET);
-
-    // Orient the decal to face along the normal
-    mesh.lookAt(point.clone().add(normal));
-
-    this.scene.add(mesh);
-
-    // Ring buffer: remove old decal if we've exceeded max
+    // Ring buffer: reuse existing decal mesh if at capacity
     if (this.decalMeshes.length >= MAX_DECALS) {
-      const old = this.decalMeshes[this.decalIndex];
-      this.scene.remove(old);
-      (old.material as THREE.Material).dispose();
-      this.decalMeshes[this.decalIndex] = mesh;
+      const mesh = this.decalMeshes[this.decalIndex];
+      mesh.position.copy(point).addScaledVector(normal, DECAL_OFFSET);
+      mesh.lookAt(point.clone().add(normal));
+      mesh.visible = true;
     } else {
+      // Shared material — decals are identical, no need for per-instance clone
+      const mesh = new THREE.Mesh(this.decalGeometry, this.decalMaterial);
+      mesh.userData.isEffect = true;
+      mesh.position.copy(point).addScaledVector(normal, DECAL_OFFSET);
+      mesh.lookAt(point.clone().add(normal));
+      this.scene.add(mesh);
       this.decalMeshes.push(mesh);
     }
     this.decalIndex = (this.decalIndex + 1) % MAX_DECALS;
@@ -311,20 +336,20 @@ export class ShootingSystem {
       this.startReload();
     }
 
-    // Tracer fade + cleanup
-    for (let i = this.tracers.length - 1; i >= 0; i--) {
-      const t = this.tracers[i];
+    // Tracer fade + return to pool
+    let writeIdx = 0;
+    for (let i = 0; i < this.activeTracers.length; i++) {
+      const t = this.activeTracers[i];
       t.age += dt;
       if (t.age >= t.maxAge) {
-        this.scene.remove(t.line);
-        t.line.geometry.dispose();
-        (t.line.material as THREE.Material).dispose();
-        this.tracers.splice(i, 1);
+        t.line.visible = false;
+        this.tracerPool.release(t);
       } else {
-        const mat = t.line.material as THREE.LineBasicMaterial;
-        mat.opacity = 1 - t.age / t.maxAge;
+        (t.line.material as THREE.LineBasicMaterial).opacity = 1 - t.age / t.maxAge;
+        this.activeTracers[writeIdx++] = t;
       }
     }
+    this.activeTracers.length = writeIdx;
   }
 
   getAmmo(): number {
@@ -357,21 +382,25 @@ export class ShootingSystem {
     this.scene.remove(this.muzzleLight);
     this.muzzleLight.dispose();
 
-    for (const t of this.tracers) {
+    // Return active tracers to pool, then dispose all
+    const disposeTracer = (t: Tracer) => {
       this.scene.remove(t.line);
       t.line.geometry.dispose();
       (t.line.material as THREE.Material).dispose();
+    };
+    for (const t of this.activeTracers) {
+      disposeTracer(t);
     }
-    this.tracers.length = 0;
+    this.activeTracers.length = 0;
+    this.tracerPool.dispose(disposeTracer);
+    this.tracerGeomPool.dispose((g) => g.dispose());
 
     for (const m of this.decalMeshes) {
       this.scene.remove(m);
-      (m.material as THREE.Material).dispose();
     }
     this.decalMeshes.length = 0;
 
     this.decalGeometry.dispose();
     this.decalMaterial.dispose();
-    this.tracerMaterial.dispose();
   }
 }
