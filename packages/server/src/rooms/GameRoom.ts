@@ -29,6 +29,7 @@ import { CollisionWorld } from '../physics/CollisionWorld.js';
 import { buildMapCollisions } from '../physics/mapCollisions.js';
 import { performHitDetection } from '../physics/hitDetection.js';
 import type { HitTarget } from '../physics/hitDetection.js';
+import { SnapshotBuffer } from '../physics/SnapshotBuffer.js';
 import { RoundSystem } from '../systems/RoundSystem.js';
 
 const NICKNAME_REGEX = /^[A-Za-z0-9_]+$/;
@@ -98,6 +99,7 @@ export class GameRoom extends Room<GameState> {
   maxClients = MAX_PLAYERS_PER_ROOM;
   private collisionWorld!: CollisionWorld;
   private roundSystem!: RoundSystem;
+  private snapshotBuffer = new SnapshotBuffer();
 
   onCreate(options: GameRoomOptions) {
     this.setState(new GameState());
@@ -181,6 +183,7 @@ export class GameRoom extends Room<GameState> {
       if (client.sessionId !== this.state.adminId) return;
       if (this.state.status !== 'match_end') return;
       this.roundSystem.returnToLobby();
+      this.snapshotBuffer.clear();
       console.log(`Room ${this.roomId} returned to lobby`);
     });
 
@@ -223,12 +226,25 @@ export class GameRoom extends Room<GameState> {
       if (len < 0.001) return;
       const direction: Vec3 = { x: dir.x / len, y: dir.y / len, z: dir.z / len };
 
-      // Build targets list from alive enemy players
+      // --- Lag compensation: rewind to client's perceived time ---
+      const clientTimestamp = isFiniteNum(msg.timestamp)
+        ? msg.timestamp as number
+        : 0;
+      const snapshot = clientTimestamp > 0
+        ? this.snapshotBuffer.getSnapshotAt(clientTimestamp)
+        : null;
+
+      // Build targets list — use rewound positions if available, else current
       const targets: HitTarget[] = [];
       const targetTeams = new Map<string, string>();
       this.state.players.forEach((p, id) => {
         if (!p.isAlive) return;
-        targets.push({ sessionId: id, x: p.x, y: p.y, z: p.z });
+        const rewound = snapshot?.players.get(id);
+        if (rewound && rewound.isAlive) {
+          targets.push({ sessionId: id, x: rewound.x, y: rewound.y, z: rewound.z });
+        } else {
+          targets.push({ sessionId: id, x: p.x, y: p.y, z: p.z });
+        }
         targetTeams.set(id, p.team);
       });
 
@@ -391,6 +407,11 @@ export class GameRoom extends Room<GameState> {
 
   private onTick() {
     this.roundSystem.tick();
+
+    // Record player positions for lag compensation (only during gameplay)
+    if (this.roundSystem.isPlayable()) {
+      this.snapshotBuffer.record(Date.now(), this.state.players.entries());
+    }
   }
 
   onJoin(client: Client, options: GameRoomOptions) {

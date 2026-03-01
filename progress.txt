@@ -545,3 +545,24 @@
     - Added team-colored CSS class to winner text (team-a-win / team-b-win)
     - Players sorted by kills descending within each team
   - TypeScript compiles cleanly for client and server
+
+## Completed this session (continued 15)
+- TASK-025 (Lag compensation: snapshot buffer and rewind)
+  - Created packages/server/src/physics/SnapshotBuffer.ts:
+    - Ring buffer of WorldSnapshot entries (player positions per tick)
+    - Each snapshot stores timestamp + Map<sessionId, PlayerSnapshot> with x/y/z/isAlive
+    - BUFFER_SIZE = ceil(TICK_RATE * 200/1000) + 2 (~6 at 20Hz) for ~1 second history
+    - record(): stores player positions at current tick timestamp
+    - getSnapshotAt(targetTimestamp): finds closest snapshot to target time
+    - Clamps rewind to MAX_REWIND_MS (200ms) — older timestamps get clamped to 200ms ago
+    - clear(): resets buffer on round/match reset
+  - Updated packages/server/src/rooms/GameRoom.ts:
+    - SnapshotBuffer instantiated as class member
+    - onTick(): records snapshot each tick during gameplay (roundSystem.isPlayable())
+    - Shoot handler: reads client timestamp from ShootMessage, calls snapshotBuffer.getSnapshotAt()
+    - If snapshot found, builds target list with rewound positions; else falls back to current positions
+    - Rewound targets that were alive at snapshot time use historical x/y/z for hit detection
+    - Positions are NOT mutated — rewind is read-only (targets array built from snapshot data)
+    - snapshotBuffer.clear() called on returnToLobby
+  - No client changes needed: ShootMessage already includes timestamp field
+  - TypeScript compiles cleanly for server, client, and shared packages

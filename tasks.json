@@ -370,7 +370,7 @@
         "Шаг 4: Rewind не превышает 200ms (логирование)"
       ],
       "dependencies": ["TASK-024"],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": "TASK-026",
