@@ -736,10 +736,10 @@ export class App {
     const localState = this.fpsController.getPhysicsState();
     const corrected = this.prediction.reconcile(serverSeq, serverState, localState);
 
-    // If reconcile returned a different state (teleport case), apply it
-    if (corrected !== localState) {
-      this.fpsController.setPhysicsState(corrected);
-    }
+    // Always apply corrected state — reconcile keeps local position for small
+    // errors (smoothed via correction offset) but always returns replayed
+    // velocityY/isGrounded to prevent vertical physics desync during jumps.
+    this.fpsController.setPhysicsState(corrected);
   }
 
   /** Send the current input state to the server and record for prediction. */

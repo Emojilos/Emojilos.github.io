@@ -112,8 +112,15 @@ export class ClientPrediction {
       this.correctionOffset.z += dz;
     }
 
-    // Return local state (correction applied via applyCorrectionOffset each frame)
-    return localState;
+    // Keep local position (corrected smoothly via offset each frame),
+    // but ALWAYS use replayed vertical physics to prevent jump desync.
+    return {
+      x: localState.x,
+      y: localState.y,
+      z: localState.z,
+      velocityY: replayState.velocityY,
+      isGrounded: replayState.isGrounded,
+    };
   }
 
   /**
